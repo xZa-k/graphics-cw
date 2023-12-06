@@ -1,4 +1,9 @@
 import "./main.scss";
+import { Scene } from "./graphics/graphics";
 
 
-console.log("Hello from index.ts!");
+
+const canvas: HTMLCanvasElement = document.querySelector("#glcanvas");
+
+let renderer = new Scene();
+renderer.render();
