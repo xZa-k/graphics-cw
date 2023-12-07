@@ -1,6 +1,6 @@
 import { mat4 } from "gl-matrix";
 import { Camera } from "./camera";
-import { CubeMesh } from "./mesh";
+import { CubeMesh, Sphere } from "./mesh";
 import { Shader } from "./shader";
 
 
@@ -41,7 +41,7 @@ export class Scene {
   `;
     public shader: Shader;
 
-    public meshes: CubeMesh[];
+    public meshes: (CubeMesh | Sphere)[];
     public camera: Camera;
     
     constructor() {
@@ -50,7 +50,9 @@ export class Scene {
 
 
         this.meshes = [
-            new CubeMesh(this.shader)
+            // new CubeMesh(this.shader),
+            // new CubeMesh(this.shader)
+            new Sphere(this.shader, 1, 100, 100)
         ];
         this.camera = new Camera();
         gl.useProgram(this.shader.shaderProgram);
@@ -58,7 +60,20 @@ export class Scene {
     }
 
     render() {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
+        gl.clearDepth(1.0); // Clear everything
+        gl.enable(gl.DEPTH_TEST); // Enable depth testing
+        gl.depthFunc(gl.LEQUAL); // Near things obscure far things
+
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+
+
         this.camera.uniformAttrib(this.shader);
+
+        // sphere.draw();
+
+        this.meshes[0].setPos(-2, -1, 0);
 
         for (const mesh of this.meshes) {
             let localModelViewMatrix = mat4.create();
