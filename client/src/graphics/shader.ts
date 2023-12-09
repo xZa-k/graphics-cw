@@ -22,6 +22,7 @@ export class Shader {
         this.uniformLocations = {};
 
         this.shaderProgram = this.initShaderProgram(vsSource, fsSource);
+        // console.log(this.shaderProgram)
     }
 
     initShaderProgram(vsSource: string, fsSource: string) {
@@ -43,6 +44,7 @@ export class Shader {
             );
             return null;
         }
+        console.log("shader program made")
         return shaderProgram;
     }
 

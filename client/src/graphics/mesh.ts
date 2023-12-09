@@ -44,22 +44,22 @@ export class Cube extends BaseMesh {
     buildVerts() {
         const size = 1;
         const r = 1;
-        const g = 0;
+        const g = 1;
         const b = 0;
 
         this.verts = [
 
-            // x, y, z, r, g, b, a
-            -size, -size, size, r, g, b, 1,
-            -size, size, size, r, g, b, 1,
-            size, size, size, r, g, b, 1,
-            size, -size, size, r, g, b, 1,
-            -size, -size, -size, r, g, b, 1,
-            -size, size, -size, r, g, b, 1,
-            size, size, -size, r, g, b, 1,
-            size, -size, -size, r, g, b, 1
+            // x, y, z, r, g, b, a, nx, ny, nz
+            -size, -size, size, r, g, b, 1.0, 1, -1, -1,
+            -size, size, size, r, g, b, 1.0, 1, 1, -1,
+            size, size, size, r, g, b, 1.0, -1, 1, -1,
+            size, -size, size, r, g, b, 1.0, 1, 1, -1,
+            -size, -size, -size, r, g, b, 1.0, -1, 1, -1,
+            -size, size, -size, r, g, b, 1.0, 1, 1, -1,
+            size, size, -size, r, g, b, 1.0, -1, 1, -1,
+            size, -size, -size, r, g, b, 1.0, 1, 1, -1,
         ];
-
+        console.log(this.verts);
         this.indices = [
             0, 2, 1, 0, 3, 2,
             4, 3, 0, 4, 7, 3,
@@ -68,6 +68,8 @@ export class Cube extends BaseMesh {
             1, 6, 5, 1, 2, 6,
             7, 5, 6, 7, 4, 5
         ];
+        console.log(this.indices);
+
     }
 
     setupBuffers() {
@@ -84,30 +86,45 @@ export class Cube extends BaseMesh {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 
+
         gl.vertexAttribPointer(
             this.shader.getAttrb("aVertexPosition"),
             3,
             gl.FLOAT,
             false,
-            7 * 4,
+            10 * 4,
             0,
         );
         gl.enableVertexAttribArray(this.shader.getAttrb("aVertexPosition"));
 
         gl.vertexAttribPointer(
             this.shader.getAttrb("aVertexColor"),
-            3,
+            4,
             gl.FLOAT,
             false,
-            7 * 4,
+            10 * 4,
             3 * 4,
         );
         gl.enableVertexAttribArray(this.shader.getAttrb("aVertexColor"));
+
+        gl.vertexAttribPointer(
+            this.shader.getAttrb("aVertexNormal"),
+            3,
+            gl.FLOAT,
+            false,
+            10 * 4,
+            7 * 4,
+        );
+        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexNormal"));
+
     }
 
     draw() {
-        
-        console.log(this.vertexBuffer);
+        console.log(this.verts);
+        console.log(this.indices)
+        // this.setupBuffers();
+        this.bindBuffers();
+
 
         gl.drawElements(gl.TRIANGLES, this.indices.length, gl.UNSIGNED_SHORT, 0);
     }
@@ -119,6 +136,7 @@ export class Sphere extends BaseMesh {
     r: number;
     n: number;
     m: number;
+    texture: WebGLTexture;
 
 
     constructor(shader: Shader, r: number, m: number, n: number) {
@@ -133,6 +151,7 @@ export class Sphere extends BaseMesh {
 
         this.buildVerts();
         this.setupBuffers();
+        this.useTexture("img/earth.jpg")
     }
 
     buildVerts() {
@@ -141,18 +160,29 @@ export class Sphere extends BaseMesh {
         let r = this.r;
         let m = this.m;
         let n = this.n;
+
+        let red = 0;
+        let green = 1;
+        let blue = 0;
+
+        // build vertices
         for (let i = 0; i <= m; i++) {
             let theta = i * (Math.PI) / m;
             for (let j = 0; j <= n; j++) {
                 let phi = 2 * j * (Math.PI) / n;
 
-                let x = r * Math.sin(theta) * Math.cos(phi);
-                let y = r * Math.cos(theta);
-                let z = r * Math.sin(theta) * Math.sin(phi);
-                verticies.push(...[x, y, z, 0, 1, 0, 1]);
+                let nx = Math.sin(theta) * Math.cos(phi);
+                let ny = Math.cos(theta);
+                let nz = Math.sin(theta) * Math.sin(phi);
+
+                let x = nx * r;
+                let y = ny * r;
+                let z = nz * r;
+                verticies.push(...[x, y, z, red, green, blue, 1, nx, ny, nz]);
             }
         }
 
+        // build indices
         for (let i = 0; i < m; i++) {
             // let theta = i*(Math.PI)/m;
             for (let j = 0; j < n; j++) {
@@ -164,9 +194,6 @@ export class Sphere extends BaseMesh {
 
             }
         }
-
-
-
 
         this.verts = verticies;
         this.indices = indices;
@@ -184,17 +211,36 @@ export class Sphere extends BaseMesh {
         this.vertexBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
+
+        this.texture = gl.createTexture();
+
+    }
+
+    useTexture(img) {
+        const imgElement = new Image();
+        imgElement.src = img;
+
+        imgElement.onload = function () {
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                gl.UNSIGNED_BYTE, imgElement);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            // console.log("loaded")
+        }
+        document.body.append(imgElement);
     }
 
     bindBuffers() {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+
+
         gl.vertexAttribPointer(
             this.shader.getAttrb("aVertexPosition"),
             3,
             gl.FLOAT,
             false,
-            7 * 4,
+            10 * 4,
             0,
         );
         gl.enableVertexAttribArray(this.shader.getAttrb("aVertexPosition"));
@@ -204,18 +250,35 @@ export class Sphere extends BaseMesh {
             4,
             gl.FLOAT,
             false,
-            7 * 4,
+            10 * 4,
             3 * 4,
         );
         gl.enableVertexAttribArray(this.shader.getAttrb("aVertexColor"));
+
+        gl.vertexAttribPointer(
+            this.shader.getAttrb("aVertexNormal"),
+            3,
+            gl.FLOAT,
+            false,
+            10 * 4,
+            7 * 4,
+        );
+        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexNormal"));
+
+        // this.useTexture("./img/earth.jpg");
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+
+        // console.log(this.texture);
+        gl.uniform1i(this.shader.getUniform("uSampler"), 0);
+
     }
 
     draw() {
-        // gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        // console.log(this.vertexBuffer);
         console.log(this.indices);
         console.log(this.verts)
+        // this.setupBuffers();
         this.bindBuffers();
 
         gl.drawElements(gl.TRIANGLE_STRIP, this.indices.length, gl.UNSIGNED_SHORT, 0);
