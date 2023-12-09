@@ -49,7 +49,6 @@ export class Scene {
         void main() {      
             highp vec2 Coordinates = vec2( 0.5 + atan( vNormal.z, vNormal.x ) / ( 2. * 3.1415 ), 0.5 - asin( vNormal.y ) / 3.1415);
             gl_FragColor = texture2D(uSampler, Coordinates);
-            // gl_FragColor = 
         }
   `;
 
@@ -77,8 +76,7 @@ export class Scene {
     varying highp vec3 vNormal;
 
         void main() {      
-            // gl_FragColor = vColor;
-            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            gl_FragColor = vColor;
 
         }
   `;
