@@ -13,8 +13,56 @@ export abstract class BaseMesh {
     indices: number[];
     modelViewMatrix: mat4;
 
-    abstract setupBuffers();
-    abstract bindBuffers();
+    setupBuffers() {
+        this.indexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices), gl.STATIC_DRAW);
+
+        this.vertexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
+    }
+    
+    bindBuffers() {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+
+
+        gl.vertexAttribPointer(
+            this.shader.getAttrb("aVertexPosition"),
+            3,
+            gl.FLOAT,
+            false,
+            10 * 4,
+            0,
+        );
+        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexPosition"));
+
+        gl.vertexAttribPointer(
+            this.shader.getAttrb("aVertexColor"),
+            4,
+            gl.FLOAT,
+            false,
+            10 * 4,
+            3 * 4,
+        );
+        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexColor"));
+
+        gl.vertexAttribPointer(
+            this.shader.getAttrb("aVertexNormal"),
+            3,
+            gl.FLOAT,
+            false,
+            10 * 4,
+            7 * 4,
+        );
+        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexNormal"));
+
+        // this.useTexture("./img/earth.jpg");
+
+        
+
+    }
 
     abstract buildVerts();
 
@@ -59,7 +107,7 @@ export class Cube extends BaseMesh {
             size, size, -size, r, g, b, 1.0, -1, 1, -1,
             size, -size, -size, r, g, b, 1.0, 1, 1, -1,
         ];
-        console.log(this.verts);
+
         this.indices = [
             0, 2, 1, 0, 3, 2,
             4, 3, 0, 4, 7, 3,
@@ -68,7 +116,6 @@ export class Cube extends BaseMesh {
             1, 6, 5, 1, 2, 6,
             7, 5, 6, 7, 4, 5
         ];
-        console.log(this.indices);
 
     }
 
@@ -82,47 +129,7 @@ export class Cube extends BaseMesh {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
     }
 
-    bindBuffers() {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-
-
-        gl.vertexAttribPointer(
-            this.shader.getAttrb("aVertexPosition"),
-            3,
-            gl.FLOAT,
-            false,
-            10 * 4,
-            0,
-        );
-        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexPosition"));
-
-        gl.vertexAttribPointer(
-            this.shader.getAttrb("aVertexColor"),
-            4,
-            gl.FLOAT,
-            false,
-            10 * 4,
-            3 * 4,
-        );
-        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexColor"));
-
-        gl.vertexAttribPointer(
-            this.shader.getAttrb("aVertexNormal"),
-            3,
-            gl.FLOAT,
-            false,
-            10 * 4,
-            7 * 4,
-        );
-        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexNormal"));
-
-    }
-
     draw() {
-        console.log(this.verts);
-        console.log(this.indices)
-        // this.setupBuffers();
         this.bindBuffers();
 
 
@@ -199,18 +206,10 @@ export class Sphere extends BaseMesh {
         this.indices = indices;
     }
 
-    setPos(x: number, y: number, z: number) {
-        mat4.translate(this.modelViewMatrix, mat4.create(), [x, y, z])
-    }
 
     setupBuffers() {
-        this.indexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices), gl.STATIC_DRAW);
-
-        this.vertexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
+        super.setupBuffers()
+        
 
         this.texture = gl.createTexture();
 
@@ -231,54 +230,17 @@ export class Sphere extends BaseMesh {
     }
 
     bindBuffers() {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        super.bindBuffers();
 
-
-        gl.vertexAttribPointer(
-            this.shader.getAttrb("aVertexPosition"),
-            3,
-            gl.FLOAT,
-            false,
-            10 * 4,
-            0,
-        );
-        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexPosition"));
-
-        gl.vertexAttribPointer(
-            this.shader.getAttrb("aVertexColor"),
-            4,
-            gl.FLOAT,
-            false,
-            10 * 4,
-            3 * 4,
-        );
-        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexColor"));
-
-        gl.vertexAttribPointer(
-            this.shader.getAttrb("aVertexNormal"),
-            3,
-            gl.FLOAT,
-            false,
-            10 * 4,
-            7 * 4,
-        );
-        gl.enableVertexAttribArray(this.shader.getAttrb("aVertexNormal"));
-
-        // this.useTexture("./img/earth.jpg");
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
-        // console.log(this.texture);
         gl.uniform1i(this.shader.getUniform("uSampler"), 0);
 
     }
 
     draw() {
-        console.log(this.indices);
-        console.log(this.verts)
-        // this.setupBuffers();
         this.bindBuffers();
 
         gl.drawElements(gl.TRIANGLE_STRIP, this.indices.length, gl.UNSIGNED_SHORT, 0);
