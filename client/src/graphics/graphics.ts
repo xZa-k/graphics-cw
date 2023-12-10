@@ -1,6 +1,6 @@
-import { mat4 } from "gl-matrix";
+import { mat4, quat } from "gl-matrix";
 import { Camera } from "./camera";
-import { Cube, Sphere } from "./mesh";
+import { Cube, Hemisphere, Sphere } from "./mesh";
 import { Shader } from "./shader";
 
 
@@ -21,11 +21,13 @@ export class Scene {
         attribute vec3 aVertexPosition;
         attribute vec4 aVertexColor;
         // attribute vec2 aTextureCoord;
+       
 
         attribute vec3 aVertexNormal;
 
         uniform mat4 uModelViewMatrix;
         uniform mat4 uProjectionMatrix;
+        uniform mat4 uLocalModelMatrix;
 
         varying vec4 vColor;
         varying vec2 vTextureCoord;
@@ -34,7 +36,7 @@ export class Scene {
 
         void main(void) {
             gl_Position =  uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
-            // vTextureCoord = aTextureCoord;
+            
             vColor = aVertexColor;
             vNormal = aVertexNormal;
         }
@@ -89,6 +91,8 @@ export class Scene {
 
     public meshes: (Cube | Sphere)[];
     public camera: Camera;
+    then: number;
+    rotation: number;
 
     constructor() {
         // let vsTextureP = this.loadShaderFile("texture.vert");
@@ -101,18 +105,22 @@ export class Scene {
         console.log(this.colorShader);
         this.meshes = [
             // new CubeMesh(this.shader),
-            new Cube(this.colorShader),
-            new Sphere(this.textureShader, 1, 100, 100),
+            // new Hemisphere(this.colorShader, 1, 100, 100)
+            new Sphere(this.textureShader, 30, 100, 100),
+            new Cube(this.colorShader, 3),
+
             // new Sphere(this.textureShader, 1, 10, 10),
 
             // new Cube(this.shader)
 
         ];
         this.camera = new Camera();
+        this.camera.setPos(0, 0, -110);
         gl.useProgram(this.colorShader.shaderProgram);
         // });
 
-
+        this.rotation = 0;
+        this.then = 0;
 
     }
 
@@ -127,6 +135,15 @@ export class Scene {
     }
 
     render(now: number) {
+        now *= 0.001;
+        let deltaTime = now - this.then;
+        
+        this.then = now;
+        // console.log(this.rotation);
+
+        this.rotation = this.rotation + deltaTime * 10;
+        
+
 
         gl.clearColor(0.0, 0.1, 0.2, 1.0); // Clear to black, fully opaque
         gl.clearDepth(1.0); // Clear everything
@@ -135,15 +152,12 @@ export class Scene {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-
-
-        // this.camera.uniformAttrib(this.colorShader);
-
-        // sphere.draw();
-
         this.meshes[0].setPos(-2, -1, 0);
-        // this.meshes[0].setPos(this.meshes[0].modelViewMatrix[0] + 0.1, 0, 0);
-        // this.meshes[1].setPos(3, 1, 0);
+        this.meshes[0].setRotation([0, 0, 180]);
+        this.meshes[0].rotate([0, this.rotation, 0]);
+
+        // this.meshes[1].setPos(-deltaTime*10, 0, 0);
+        this.meshes[1].setPos(-40, 0, 0);
 
 
         for (const mesh of this.meshes) {

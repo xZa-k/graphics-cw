@@ -16,7 +16,7 @@ export class Camera {
         this.fov = (45 * Math.PI) / 180; // in radians
         this.aspect = gl.canvas.width / gl.canvas.height;
         this.zNear = 0.1;
-        this.zFar = 100.0;
+        this.zFar = 200.0;
         this.projectionMatrix = mat4.create();
 
         mat4.perspective(this.projectionMatrix, this.fov, this.aspect, this.zNear, this.zFar);
@@ -25,8 +25,12 @@ export class Camera {
         mat4.translate(
             this.modelViewMatrix,
             this.modelViewMatrix, 
-            [-0.0, 0.0, -10.0],
+            [-0.0, 0.0, -10.0], // default starting position
         ); 
+    }
+
+    setPos(x: number, y: number, z: number) {
+        mat4.translate(this.modelViewMatrix, mat4.create(), [x, y, z]);
     }
 
     uniformAttrib(shader: Shader) {
