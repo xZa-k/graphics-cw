@@ -1,6 +1,6 @@
 import { mat4, quat } from "gl-matrix";
 import { Camera } from "./camera";
-import { Cube, Hemisphere, Sphere } from "./mesh";
+import { BaseMesh, Cube, Cylinder, Hemisphere, Rect, Sphere } from "./mesh";
 import { Shader } from "./shader";
 
 
@@ -89,7 +89,7 @@ export class Scene {
     public colorShader: Shader;
 
 
-    public meshes: (Cube | Sphere)[];
+    public meshes: BaseMesh[];
     public camera: Camera;
     then: number;
     rotation: number;
@@ -106,8 +106,16 @@ export class Scene {
         this.meshes = [
             // new CubeMesh(this.shader),
             // new Hemisphere(this.colorShader, 1, 100, 100)
-            new Sphere(this.textureShader, 30, 100, 100),
+            // new Sphere(this.textureShader, 30, 100, 100),
+            // new Cube(this.colorShader, 3),
+
+            new Cylinder(this.colorShader, 0.4, 0.8, 100),
+            new Cylinder(this.colorShader, 0.4, 0.8, 100),
             new Cube(this.colorShader, 3),
+            new Rect(this.colorShader, 5, 20),
+
+
+
 
             // new Sphere(this.textureShader, 1, 10, 10),
 
@@ -122,6 +130,15 @@ export class Scene {
         this.rotation = 0;
         this.then = 0;
 
+
+        this.meshes[0].setPos(-20, 0, 0);
+        this.meshes[0].rotate([0, 0, 90]);
+
+        this.meshes[1].setPos(4, 0, 0);
+        this.meshes[1].rotate([0, 0, 90]);
+        
+        (this.meshes[2] as Cube).setFaceColor(2, 1, 0, 0);
+        (this.meshes[2] as Cube).setFaceColor(3, 1, 0, 0);
     }
 
     async loadShaderFile(fileName) {
@@ -152,12 +169,15 @@ export class Scene {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        this.meshes[0].setPos(-2, -1, 0);
-        this.meshes[0].setRotation([0, 0, 180]);
-        this.meshes[0].rotate([0, this.rotation, 0]);
+        
+        // this.meshes[0].rotate([1, 1, 1]);
+        // this.meshes[3].rotate([0, 1, 0]);
 
         // this.meshes[1].setPos(-deltaTime*10, 0, 0);
-        this.meshes[1].setPos(-40, 0, 0);
+        // this.meshes[1].move(-1, 0, 0);
+
+        // this.meshes[1].setPos(-40, 0, 0);
+
 
 
         for (const mesh of this.meshes) {
@@ -177,10 +197,4 @@ export class Scene {
             this.render(n);
         })
     }
-
-    // animate() {
-    //     this.render();
-    //     requestAnimationFrame(() => this.animate);
-    //     // this.animate()
-    // }
 }
