@@ -2,6 +2,7 @@ import { mat4, quat } from "gl-matrix";
 import { Camera } from "./camera";
 import { BaseMesh, Cube, Cylinder, Hemisphere, Rect, Sphere } from "./mesh";
 import { Shader } from "./shader";
+import { MeshTree, Model } from "./model";
 
 
 const canvas: HTMLCanvasElement = document.querySelector("#glcanvas");
@@ -54,7 +55,7 @@ export class Scene {
         }
   `;
 
-  public vsColSource: string = `
+    public vsColSource: string = `
         attribute vec3 aVertexPosition;
         attribute vec4 aVertexColor;
 
@@ -84,61 +85,75 @@ export class Scene {
   `;
 
 
-    
+
     public textureShader: Shader;
     public colorShader: Shader;
 
 
-    public meshes: BaseMesh[];
+    public meshes: MeshTree;
     public camera: Camera;
     then: number;
     rotation: number;
 
     constructor() {
-        // let vsTextureP = this.loadShaderFile("texture.vert");
-        // let fsTextureP = this.loadShaderFile("texture.frag");
-
-        // Promise.all([vsTextureP, fsTextureP]).then((shaderSource) => {
         this.textureShader = new Shader(gl, this.vsTexSource, this.fsTexSource);
-        // console.log(this.textureShader);
         this.colorShader = new Shader(gl, this.vsColSource, this.fsColSource);
-        console.log(this.colorShader);
-        this.meshes = [
-            // new CubeMesh(this.shader),
-            // new Hemisphere(this.colorShader, 1, 100, 100)
-            // new Sphere(this.textureShader, 30, 100, 100),
-            // new Cube(this.colorShader, 3),
 
-            new Cylinder(this.colorShader, 0.4, 0.8, 100),
-            new Cylinder(this.colorShader, 0.4, 0.8, 100),
-            new Cube(this.colorShader, 3),
-            new Rect(this.colorShader, 5, 20),
+        let satellite = new Model();
+        satellite.addMesh("root", new Cube(this.colorShader, 3).setPos(20, -10, 0));
+        satellite.addMesh("pole1", new Cylinder(this.colorShader, 0.4, 0.8, 100));
+        satellite.addMesh("pole2", new Cylinder(this.colorShader, 0.4, 0.8, 100));
+        satellite.addMesh("solar1", new Rect(this.colorShader, 5, 20).setPos(0, 10, 0));
+        satellite.addMesh("solar2", new Rect(this.colorShader, 5, 20).setPos(-20, 0, 0));
+        // satellite.addMesh("solar3", new Rect(this.colorShader, 5, 5).setPos(0, 10, 0));
 
 
 
 
-            // new Sphere(this.textureShader, 1, 10, 10),
+        // (satellite.getMesh("root") as Cube).setPos(0, 20, 0);
+        // (satellite.getMesh("solar1") as Rect).setPos(-20, 0, 0);
 
-            // new Cube(this.shader)
 
-        ];
+        this.meshes = {
+            satellite
+            // pole1: new Cylinder(this.colorShader, 0.4, 0.8, 100),
+            // pole2: new Cylinder(this.colorShader, 0.4, 0.8, 100),
+            // body: new Cube(this.colorShader, 3),
+            // solar1: new Rect(this.colorShader, 5, 20),
+        }
+
+        // this.meshes = [
+        //     // new CubeMesh(this.shader),
+        //     // new Hemisphere(this.colorShader, 1, 100, 100)
+        //     // new Sphere(this.textureShader, 30, 100, 100),
+        //     // new Cube(this.colorShader, 3),
+
+        //     new Cylinder(this.colorShader, 0.4, 0.8, 100),
+        //     new Cylinder(this.colorShader, 0.4, 0.8, 100),
+        //     new Cube(this.colorShader, 3),
+        //     new Rect(this.colorShader, 5, 20),
+
+
+
         this.camera = new Camera();
         this.camera.setPos(0, 0, -110);
         gl.useProgram(this.colorShader.shaderProgram);
-        // });
 
         this.rotation = 0;
         this.then = 0;
 
 
-        this.meshes[0].setPos(-20, 0, 0);
-        this.meshes[0].rotate([0, 0, 90]);
+        // this.meshes[0].setPos(-20, 0, 0);
+        // this.meshes[0].rotate([0, 0, 90]);
 
-        this.meshes[1].setPos(4, 0, 0);
-        this.meshes[1].rotate([0, 0, 90]);
-        
-        (this.meshes[2] as Cube).setFaceColor(2, 1, 0, 0);
-        (this.meshes[2] as Cube).setFaceColor(3, 1, 0, 0);
+        // this.meshes[1].setPos(4, 0, 0);
+        // this.meshes[1].rotate([0, 0, 90]);
+
+        // (this.meshes[2] as Cube).setFaceColor(2, 1, 0, 0);
+        // (this.meshes[2] as Cube).setFaceColor(3, 1, 0, 0);
+        // (this.meshes['body'] as Cube).setFaceColor(2, 1, 0, 0);
+        // (this.meshes['body'] as Cube).setFaceColor(3, 1, 0, 0);
+        // this.meshes["body"].setPos(-20, 0, 0)
     }
 
     async loadShaderFile(fileName) {
@@ -154,12 +169,12 @@ export class Scene {
     render(now: number) {
         now *= 0.001;
         let deltaTime = now - this.then;
-        
+
         this.then = now;
         // console.log(this.rotation);
 
         this.rotation = this.rotation + deltaTime * 10;
-        
+
 
 
         gl.clearColor(0.0, 0.1, 0.2, 1.0); // Clear to black, fully opaque
@@ -169,7 +184,7 @@ export class Scene {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        
+        // this.meshes["body"].rotate([1, 1, 1]);
         // this.meshes[0].rotate([1, 1, 1]);
         // this.meshes[3].rotate([0, 1, 0]);
 
@@ -180,17 +195,21 @@ export class Scene {
 
 
 
-        for (const mesh of this.meshes) {
+        for (const key in this.meshes) {
+            const mesh = this.meshes[key];
+            
             gl.useProgram(mesh.shader.shaderProgram);
             this.camera.uniformAttrib(mesh.shader);
             let localModelViewMatrix = mat4.create();
+            
             mat4.mul(localModelViewMatrix, this.camera.modelViewMatrix, mesh.modelViewMatrix);
-            gl.uniformMatrix4fv(
-                mesh.shader.getUniform("uModelViewMatrix"),
-                false,
-                localModelViewMatrix,
-            );
-            mesh.draw();
+
+            if (mesh instanceof Model) {
+                // localModelViewMatrix = (mesh as Model).update(this.camera);
+            }
+
+            
+            mesh.draw(this.camera);
         }
         // console.log("rendered")
         requestAnimationFrame((n) => {

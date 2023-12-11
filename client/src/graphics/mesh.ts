@@ -1,6 +1,7 @@
 import { mat4, vec3 } from "gl-matrix";
 import { gl } from "./graphics";
 import { Shader } from "./shader";
+import { Camera } from "./camera";
 
 
 export abstract class BaseMesh {
@@ -67,7 +68,7 @@ export abstract class BaseMesh {
 
     abstract buildVerts();
 
-    abstract draw();
+    abstract draw(camera: Camera);
 
     constructor(shader: Shader) {
         this.shader = shader;
@@ -87,8 +88,9 @@ export abstract class BaseMesh {
         this.setupBuffers();
     }
 
-    setPos(x: number, y: number, z: number) {
+    setPos(x: number, y: number, z: number): this {
         mat4.translate(this.modelViewMatrix, mat4.create(), [x, y, z]);
+        return this;
     }
 
     move(x: number, y: number, z: number) {
@@ -237,9 +239,16 @@ export class Cube extends BaseMesh {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
     }
 
-    draw() {
+    draw(camera) {
         this.bindBuffers();
-
+        // console.log(mat4.getTranslation())
+        let localModelViewMatrix = mat4.create();
+        mat4.mul(localModelViewMatrix, camera.modelViewMatrix, this.modelViewMatrix);
+        gl.uniformMatrix4fv(
+            this.shader.getUniform("uModelViewMatrix"),
+            false,
+            localModelViewMatrix,
+        );
 
         gl.drawElements(gl.TRIANGLES, this.indices.length, gl.UNSIGNED_SHORT, 0);
     }
