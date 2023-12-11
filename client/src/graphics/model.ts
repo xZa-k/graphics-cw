@@ -1,4 +1,4 @@
-import { mat4 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import { BaseMesh } from "./mesh";
 import { Shader } from "./shader";
 import { Camera } from "./camera";
@@ -32,8 +32,8 @@ export class Model {
         this.meshes = {};
     }
 
-    rotate() {
-
+    rotate(axis: vec3) {
+        this.meshes["root"].rotate(axis);
     }
 
     setRotation() {
@@ -44,19 +44,21 @@ export class Model {
 
     }
 
-    // update(camera: Camera): mat4 {
-    //     let localModelViewMatrix = this.modelViewMatrix;
-    //     for (const name in this.meshes) {
-    //         if (name == "root") continue;
-    //         const mesh = this.meshes[name];
-    //         // mat4.add(localModelViewMatrix, this.modelViewMatrix, mesh.modelViewMatrix);
-    //         mat4.mul(localModelViewMatrix, camera.modelViewMatrix, mesh.modelViewMatrix);
-    //         mesh.draw(camera);
-    //         localModelViewMatrix = this.modelViewMatrix;
-    //     }
+    orbit(r: number, phiDeg: number, thetaDeg: number){
+        const phi = phiDeg * (Math.PI/180);
+        const theta = thetaDeg * (Math.PI/180);
 
-    //     return localModelViewMatrix;
-    // }
+
+        let nx = Math.sin(theta) * Math.cos(phi);
+        let ny = Math.cos(theta);
+        let nz = Math.sin(theta) * Math.sin(phi);
+
+        let x = nx * r;
+        let y = ny * r;
+        let z = nz * r;
+        console.log(`x: ${x} y: ${y} z: ${z}`)
+        this.meshes["root"].setPos(x, y, z);
+    }
 
     draw(camera: Camera) {
         let localModelViewMatrix = mat4.create();
@@ -66,16 +68,9 @@ export class Model {
         for (const name in this.meshes) {
 
             const mesh = this.meshes[name];
-            // if (name == "root") continue;
-
-            // mat4.add(localModelViewMatrix, this.modelViewMatrix, mesh.modelViewMatrix);
-
-                // mat4.mul(localModelViewMatrix, camera.modelViewMatrix, mesh.modelViewMatrix);
-
-                // localModelViewMatrix = mat4.create();
-                let offsetM: mat4 = mat4.create();
-                mat4.mul(offsetM, camera.modelViewMatrix, this.modelViewMatrix);
-                mat4.mul(localModelViewMatrix, offsetM, mesh.modelViewMatrix);
+            let offsetM: mat4 = mat4.create();
+            mat4.mul(offsetM, camera.modelViewMatrix, this.modelViewMatrix);
+            mat4.mul(localModelViewMatrix, offsetM, mesh.modelViewMatrix);
 
             gl.uniformMatrix4fv(
                 mesh.shader.getUniform("uModelViewMatrix"),

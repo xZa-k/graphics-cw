@@ -86,6 +86,15 @@ export abstract class BaseMesh {
         // update buffers, bit inefficent but whatever
         this.buildVerts();
         this.setupBuffers();
+        return this;
+    }
+
+    lookAt(x: number, y: number, z: number, camera: Camera) {
+        // mat4.lookAt(this.modelViewMatrix, this.modelViewMatrix, )
+        // camera.modelViewMatrix.
+        let meshPos: [number, number, number] = [this.modelViewMatrix[12], this.modelViewMatrix[13], this.modelViewMatrix[14]]
+        mat4.targetTo(this.modelViewMatrix, meshPos, [x, y, z], [0, 1, 0]);
+        return this;
     }
 
     setPos(x: number, y: number, z: number): this {
@@ -97,17 +106,20 @@ export abstract class BaseMesh {
         mat4.translate(this.modelViewMatrix, this.modelViewMatrix, [x, y, z]);
     }
 
-    setRotation(axis: vec3) {
+    setRotation(axis: vec3): this {
         // let rad = rotation * (Math.PI / 180);
         mat4.rotateX(this.modelViewMatrix, mat4.create(), axis[0] * (Math.PI / 180));
         mat4.rotateY(this.modelViewMatrix, this.modelViewMatrix, axis[1] * (Math.PI / 180));
         mat4.rotateZ(this.modelViewMatrix, this.modelViewMatrix, axis[2] * (Math.PI / 180));
+        return this;
     }
 
     rotate(axis: vec3) {
+        console.log("hello?")
         mat4.rotateX(this.modelViewMatrix, this.modelViewMatrix, axis[0] * (Math.PI / 180));
         mat4.rotateY(this.modelViewMatrix, this.modelViewMatrix, axis[1] * (Math.PI / 180));
         mat4.rotateZ(this.modelViewMatrix, this.modelViewMatrix, axis[2] * (Math.PI / 180));
+        return this;
     }
 }
 
@@ -126,7 +138,7 @@ export class Cube extends BaseMesh {
 
     setFaceColor(face: number, r: number, g: number, b: number) {
         const offset = 3;
-        console.log(this.verts)
+        // console.log(this.verts)
         this.color = vec3.create();
         this.color[0] = r;
         this.color[1] = g;
@@ -134,7 +146,7 @@ export class Cube extends BaseMesh {
 
         for (let i = 0; i < 4; i++) {
             const vi = i * (10) + offset + (face * 10 * 4);
-            console.log(vi);
+            // console.log(vi);
             this.verts[vi] = r;
             this.verts[vi+1] = g;
             this.verts[vi+2] = b;
@@ -149,6 +161,7 @@ export class Cube extends BaseMesh {
         // this.verts[offset + 2] = b;
         // console.log(this.verts[offset], this.verts[offset + 1], this.verts[offset + 2]);
         this.setupBuffers();
+        return this;
     }
 
     buildVerts() {
@@ -233,7 +246,7 @@ export class Cube extends BaseMesh {
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices), gl.STATIC_DRAW);
 
         this.vertexBuffer = gl.createBuffer();
-        console.log("update vert")
+        // console.log("update vert")
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
@@ -257,11 +270,13 @@ export class Cube extends BaseMesh {
 export class Rect extends BaseMesh {
     height: number;
     width: number;
+    depth: number;
 
-    constructor(shader: Shader, height: number, width: number) {
+    constructor(shader: Shader, width: number, height: number, depth: number) {
         super(shader);
         this.height = height;
-        this.width = width
+        this.width = width;
+        this.depth = depth;
         this.buildVerts();
 
 
@@ -272,6 +287,9 @@ export class Rect extends BaseMesh {
     buildVerts() {
         const height = this.height;
         const width = this.width;
+        const halfWidth = this.width/2;
+        const halfHeight = this.height/2;
+        const halfDepth = this.depth/2;
 
         const r = this.color[0];
         const g = this.color[1];
@@ -279,26 +297,56 @@ export class Rect extends BaseMesh {
         // console.log(this.verts);
 
         this.verts = [
-            // x, y, z, r, g, b, a, nx, ny, nz
-            -width / 2, -height / 2, 0, r, g, b, 1.0, 0, 0, 1,
-            -width / 2, height / 2, 0, r, g, b, 1.0, 0, 0, 1,
-            width / 2, height / 2, 0, r, g, b, 1.0, 0, 0, 1,
-            width / 2, -height / 2, 0, r, g, b, 1.0, 0, 0, 1,
-
+            // Front face
+            -halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 0, 0, 1,
+            -halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 0, 0, 1,
+            halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 0, 0, 1,
+            halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 0, 0, 1,
+    
             // Back face
-            -width / 2, -height / 2, height, r, g, b, 1.0, 0, 0, -1,
-            -width / 2, height / 2, height, r, g, b, 1.0, 0, 0, -1,
-            width / 2, height / 2, height, r, g, b, 1.0, 0, 0, -1,
-            width / 2, -height / 2, height, r, g, b, 1.0, 0, 0, -1,
+            -halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 0, 0, -1,
+            halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 0, 0, -1,
+            halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 0, 0, -1,
+            -halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 0, 0, -1,
+    
+            // Top face
+            -halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 0, 1, 0,
+            -halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 0, 1, 0,
+            halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 0, 1, 0,
+            halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 0, 1, 0,
+    
+            // Bottom face
+            -halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 0, -1, 0,
+            halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 0, -1, 0,
+            halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 0, -1, 0,
+            -halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 0, -1, 0,
+    
+            // Right face
+            halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 1, 0, 0,
+            halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 1, 0, 0,
+            halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 1, 0, 0,
+            halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 1, 0, 0,
+    
+            // Left face
+            -halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, -1, 0, 0,
+            -halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, -1, 0, 0,
+            -halfWidth, halfHeight, halfDepth, r, g, b, 1.0, -1, 0, 0,
+            -halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, -1, 0, 0,
         ];
 
         this.indices = [
-            0, 2, 1, 0, 3, 2,
-            4, 3, 0, 4, 7, 3,
-            4, 1, 5, 4, 0, 1,
-            3, 6, 2, 3, 7, 6,
-            1, 6, 5, 1, 2, 6,
-            7, 5, 6, 7, 4, 5
+            // Front face
+            0, 1, 2, 0, 2, 3,
+            // Back face
+            4, 5, 6, 4, 6, 7,
+            // Left face
+            8, 9, 10, 8, 10, 11,
+            // Right face
+            12, 13, 14, 12, 14, 15,
+            // Top face
+            16, 17, 18, 16, 18, 19,
+            // Bottom face
+            20, 21, 22, 20, 22, 23,
         ];
 
     }
@@ -463,9 +511,9 @@ export class Hemisphere extends BaseMesh {
         let m = this.m;
         let n = this.n;
 
-        let red = 0;
-        let green = 1;
-        let blue = 0;
+        let red = this.color[0];
+        let green = this.color[1];
+        let blue = this.color[2];
 
         // build vertices
         for (let i = 0; i <= m; i++) {
@@ -572,9 +620,9 @@ export class Cylinder extends BaseMesh {
         let h = this.h;
         let n = this.n;
 
-        let red = 0;
-        let green = 1;
-        let blue = 0;
+        let red = this.color[0];
+        let green = this.color[1];
+        let blue = this.color[2];
 
         // build vertices
         for (let j = 0; j < n; j++) {
@@ -624,6 +672,89 @@ export class Cylinder extends BaseMesh {
         //     let v4 = v2 + 1;
         //     indices.push(...[v1, v2, v3, v3, v2, v4]);
         // }
+
+        this.verts = verticies;
+        this.indices = indices;
+    }
+
+
+    setupBuffers() {
+        super.setupBuffers()
+    }
+
+
+    bindBuffers() {
+        super.bindBuffers();
+    }
+
+    draw() {
+        this.bindBuffers();
+
+        gl.drawElements(gl.TRIANGLE_STRIP, this.indices.length, gl.UNSIGNED_SHORT, 0);
+        // gl.drawArrays(gl.TRIANGLES, 0, 22);
+    }
+}
+
+
+export class CircularPlane extends BaseMesh {
+
+    r: number;
+    n: number;
+    h: number;
+    texture: WebGLTexture;
+
+
+    constructor(shader: Shader, r: number, n: number) {
+        super(shader);
+
+        this.shader = shader;
+
+
+        this.r = r;
+        this.n = n;
+
+        this.buildVerts();
+        this.setupBuffers();
+    }
+
+    buildVerts() {
+        let verticies = [];
+        let indices = [];
+        let r = this.r;
+        let h = this.h;
+        let n = this.n;
+
+        let red = this.color[0];
+        let green = this.color[1];
+        let blue = this.color[2];
+        verticies.push(...[0, 0, 0, red, green, blue, 1, 0, 0, 0]);
+        // build vertices
+        for (let i = 0; i < n; i++) {
+            let theta = (i / n) * 2 * Math.PI;
+
+            let nx = Math.cos(theta);
+            let ny = 0;
+            let nz = Math.sin(theta);
+
+            let x = nx * r;
+            let y = ny * r;
+            let z = nz * r;
+            verticies.push(...[x, 0, z, red, green, blue, 1, nx, ny, nz]);
+        }
+
+        for (let i = 0; i <= n; i++) {
+            indices.push(0);
+            indices.push(i);
+            indices.push((i) % n);
+        }
+
+        indices.push(0)
+        indices.push(n)
+        indices.push(1)
+
+
+        console.log("plane")
+        console.log(indices)
 
         this.verts = verticies;
         this.indices = indices;

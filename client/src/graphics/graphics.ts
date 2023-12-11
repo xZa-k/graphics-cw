@@ -1,6 +1,6 @@
 import { mat4, quat } from "gl-matrix";
 import { Camera } from "./camera";
-import { BaseMesh, Cube, Cylinder, Hemisphere, Rect, Sphere } from "./mesh";
+import { BaseMesh, CircularPlane, Cube, Cylinder, Hemisphere, Rect, Sphere } from "./mesh";
 import { Shader } from "./shader";
 import { MeshTree, Model } from "./model";
 
@@ -13,6 +13,7 @@ if (gl == null) {
         "Unable to initialize WebGL. Your browser or machine may not support it."
     )
 }
+
 
 
 export class Scene {
@@ -90,7 +91,7 @@ export class Scene {
     public colorShader: Shader;
 
 
-    public meshes: MeshTree;
+    public meshes: MeshTree | BaseMesh;
     public camera: Camera;
     then: number;
     rotation: number;
@@ -100,11 +101,57 @@ export class Scene {
         this.colorShader = new Shader(gl, this.vsColSource, this.fsColSource);
 
         let satellite = new Model();
-        satellite.addMesh("root", new Cube(this.colorShader, 3).setPos(20, -10, 0));
-        satellite.addMesh("pole1", new Cylinder(this.colorShader, 0.4, 0.8, 100));
-        satellite.addMesh("pole2", new Cylinder(this.colorShader, 0.4, 0.8, 100));
-        satellite.addMesh("solar1", new Rect(this.colorShader, 5, 20).setPos(0, 10, 0));
-        satellite.addMesh("solar2", new Rect(this.colorShader, 5, 20).setPos(-20, 0, 0));
+
+        // satellite
+
+        satellite.addMesh("root", new Cube(this.colorShader, 3)
+        .setPos(50, -10, 0)
+        .setColor(0.9, 0.7, 0)
+        .setFaceColor(3, 0.388, 0.388, 0.388)
+        .setFaceColor(2, 0.388, 0.388, 0.388)
+        .lookAt(0, 0, 0, this.camera)
+        .rotate([0, 180, 0])
+        );
+
+        satellite.addMesh("pole1", new Cylinder(this.colorShader, 0.4, 0.8, 100)
+        .setPos(4, 0, 0)
+        .rotate([0, 0, 90])
+        .setColor(0.7, 0.7, 0.7)
+        );
+        satellite.addMesh("pole2", new Cylinder(this.colorShader, 0.4, 0.8, 100)
+        .setPos(-3, 0, 0)
+        .rotate([0, 0, 90])
+        .setColor(0.7, 0.7, 0.7)
+        );
+
+        satellite.addMesh("solar1", new Rect(this.colorShader, 5, 0.6, 2)
+        .setPos(6.3, 0, 0)
+        .setColor(0.176, 0.333, 0.807)
+        );
+        satellite.addMesh("solar2", new Rect(this.colorShader, 5, 0.6, 2)
+        .setPos(-6.3, 0, 0)
+        .setColor(0.176, 0.333, 0.807)
+        );
+
+        satellite.addMesh("antenna", new Cylinder(this.colorShader, 0.3, 1, 100)
+        .setPos(0, 0, 3)
+        .rotate([90, 0, 0])
+        .setColor(0.7, 0.7, 0.7)
+
+        );
+
+        satellite.addMesh("dish", new Hemisphere(this.colorShader, 4, 100, 100)
+        .setColor(0.9, 0.7, 0)
+
+        .setPos(0, 0, 8)
+        .rotate([-90, 0, 0])
+        );
+
+        satellite.addMesh("dishtop", new CircularPlane(this.colorShader, 4, 100)
+        .setColor(1, 1, 1)
+        .setPos(0, 0, 8)
+        .rotate([-90, 0, 0])
+        );
         // satellite.addMesh("solar3", new Rect(this.colorShader, 5, 5).setPos(0, 10, 0));
 
 
@@ -113,9 +160,14 @@ export class Scene {
         // (satellite.getMesh("root") as Cube).setPos(0, 20, 0);
         // (satellite.getMesh("solar1") as Rect).setPos(-20, 0, 0);
 
-
+        // let earth = new Model();
+        // earth.addMesh("root", new Sphere(this.textureShader, 30, 100, 100).rotate([0, 0, 180]))
         this.meshes = {
-            satellite
+
+            satellite,
+            earth: new Sphere(this.textureShader, 30, 100, 100).rotate([0, -60, -180])
+
+            
             // pole1: new Cylinder(this.colorShader, 0.4, 0.8, 100),
             // pole2: new Cylinder(this.colorShader, 0.4, 0.8, 100),
             // body: new Cube(this.colorShader, 3),
@@ -136,7 +188,7 @@ export class Scene {
 
 
         this.camera = new Camera();
-        this.camera.setPos(0, 0, -110);
+        this.camera.setPos(0, 0, -200);
         gl.useProgram(this.colorShader.shaderProgram);
 
         this.rotation = 0;
@@ -187,6 +239,13 @@ export class Scene {
         // this.meshes["body"].rotate([1, 1, 1]);
         // this.meshes[0].rotate([1, 1, 1]);
         // this.meshes[3].rotate([0, 1, 0]);
+        // (this.meshes["satellite"] as Model).meshes["solar1"].rotate([1, 1, 1])
+        // this.meshes["satellite"].meshes["root"].setPos(50, this.rotation, 0).lookAt(0, 0, 0, this.camera)
+        // .rotate([0, 180, 0])
+        (this.meshes["satellite"] as Model).orbit(40, this.rotation, this.rotation)
+        this.meshes["satellite"].meshes["root"].lookAt(0, 0, 0, this.camera).rotate([0, 180, 0])
+
+        this.meshes["earth"].rotate([0, 1, 0]);
 
         // this.meshes[1].setPos(-deltaTime*10, 0, 0);
         // this.meshes[1].move(-1, 0, 0);
@@ -204,8 +263,12 @@ export class Scene {
             
             mat4.mul(localModelViewMatrix, this.camera.modelViewMatrix, mesh.modelViewMatrix);
 
-            if (mesh instanceof Model) {
-                // localModelViewMatrix = (mesh as Model).update(this.camera);
+            if (mesh instanceof BaseMesh) {
+                gl.uniformMatrix4fv(
+                    mesh.shader.getUniform("uModelViewMatrix"),
+                    false,
+                    localModelViewMatrix,
+                );
             }
 
             
