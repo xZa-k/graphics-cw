@@ -115,7 +115,6 @@ export abstract class BaseMesh {
     }
 
     rotate(axis: vec3) {
-        console.log("hello?")
         mat4.rotateX(this.modelViewMatrix, this.modelViewMatrix, axis[0] * (Math.PI / 180));
         mat4.rotateY(this.modelViewMatrix, this.modelViewMatrix, axis[1] * (Math.PI / 180));
         mat4.rotateZ(this.modelViewMatrix, this.modelViewMatrix, axis[2] * (Math.PI / 180));
@@ -450,6 +449,7 @@ export class Sphere extends BaseMesh {
     useTexture(img) {
         const imgElement = new Image();
         imgElement.src = img;
+        imgElement.hidden = true;
         gl.bindTexture(gl.TEXTURE_2D, null);
 
         imgElement.onload = function () {
@@ -501,7 +501,6 @@ export class Hemisphere extends BaseMesh {
 
         this.buildVerts();
         this.setupBuffers();
-        this.useTexture("img/earth.jpg");
     }
 
     buildVerts() {
@@ -556,20 +555,6 @@ export class Hemisphere extends BaseMesh {
 
 
         this.texture = gl.createTexture();
-    }
-
-    useTexture(img) {
-        const imgElement = new Image();
-        imgElement.src = img;
-
-        imgElement.onload = function () {
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
-                gl.UNSIGNED_BYTE, imgElement);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            // console.log("loaded")
-        }
-        document.body.append(imgElement);
     }
 
     bindBuffers() {

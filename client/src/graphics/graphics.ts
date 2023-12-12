@@ -14,6 +14,18 @@ if (gl == null) {
     )
 }
 
+interface MouseEvent {
+    transX: number;
+    drag: boolean,
+    transY: number,
+    transZ: number,
+    rotX: number,
+    rotY: number,
+    rotZ: number,
+    offX: number,
+    offY: number,
+    offZ: number
+}
 
 
 export class Scene {
@@ -95,62 +107,85 @@ export class Scene {
     public camera: Camera;
     then: number;
     rotation: number;
+    orbitRadius: number;
+
+    key: boolean[];
+    orbitSpeed: number;
+    mouse: MouseEvent;
+
 
     constructor() {
+        this.key = [];
+        this.mouse = {
+            drag: false,
+            transX: 0,
+            transY: 0,
+            transZ: 0,
+            rotX: 0,
+            rotY: 0,
+            rotZ: 0,
+            offX: 0,
+            offY: 0,
+            offZ: 0,
+        };
+        this.setupInput();
+
         this.textureShader = new Shader(gl, this.vsTexSource, this.fsTexSource);
         this.colorShader = new Shader(gl, this.vsColSource, this.fsColSource);
 
         let satellite = new Model();
 
+        this.orbitRadius = 45;
+        this.orbitSpeed = 0.2;
         // satellite
 
         satellite.addMesh("root", new Cube(this.colorShader, 3)
-        .setPos(50, -10, 0)
-        .setColor(0.9, 0.7, 0)
-        .setFaceColor(3, 0.388, 0.388, 0.388)
-        .setFaceColor(2, 0.388, 0.388, 0.388)
-        .lookAt(0, 0, 0, this.camera)
-        .rotate([0, 180, 0])
+            .setPos(50, -10, 0)
+            .setColor(0.9, 0.7, 0)
+            .setFaceColor(3, 0.388, 0.388, 0.388)
+            .setFaceColor(2, 0.388, 0.388, 0.388)
+            .lookAt(0, 0, 0, this.camera)
+            .rotate([0, 180, 0])
         );
 
         satellite.addMesh("pole1", new Cylinder(this.colorShader, 0.4, 0.8, 100)
-        .setPos(4, 0, 0)
-        .rotate([0, 0, 90])
-        .setColor(0.7, 0.7, 0.7)
+            .setPos(4, 0, 0)
+            .rotate([0, 0, 90])
+            .setColor(0.7, 0.7, 0.7)
         );
         satellite.addMesh("pole2", new Cylinder(this.colorShader, 0.4, 0.8, 100)
-        .setPos(-3, 0, 0)
-        .rotate([0, 0, 90])
-        .setColor(0.7, 0.7, 0.7)
+            .setPos(-3, 0, 0)
+            .rotate([0, 0, 90])
+            .setColor(0.7, 0.7, 0.7)
         );
 
         satellite.addMesh("solar1", new Rect(this.colorShader, 5, 0.6, 2)
-        .setPos(6.3, 0, 0)
-        .setColor(0.176, 0.333, 0.807)
+            .setPos(6.3, 0, 0)
+            .setColor(0.176, 0.333, 0.807)
         );
         satellite.addMesh("solar2", new Rect(this.colorShader, 5, 0.6, 2)
-        .setPos(-6.3, 0, 0)
-        .setColor(0.176, 0.333, 0.807)
+            .setPos(-6.3, 0, 0)
+            .setColor(0.176, 0.333, 0.807)
         );
 
         satellite.addMesh("antenna", new Cylinder(this.colorShader, 0.3, 1, 100)
-        .setPos(0, 0, 3)
-        .rotate([90, 0, 0])
-        .setColor(0.7, 0.7, 0.7)
+            .setPos(0, 0, 3)
+            .rotate([90, 0, 0])
+            .setColor(0.7, 0.7, 0.7)
 
         );
 
         satellite.addMesh("dish", new Hemisphere(this.colorShader, 4, 100, 100)
-        .setColor(0.9, 0.7, 0)
+            .setColor(0.9, 0.7, 0)
 
-        .setPos(0, 0, 8)
-        .rotate([-90, 0, 0])
+            .setPos(0, 0, 8)
+            .rotate([-90, 0, 0])
         );
 
         satellite.addMesh("dishtop", new CircularPlane(this.colorShader, 4, 100)
-        .setColor(1, 1, 1)
-        .setPos(0, 0, 8)
-        .rotate([-90, 0, 0])
+            .setColor(1, 1, 1)
+            .setPos(0, 0, 8)
+            .rotate([-90, 0, 0])
         );
         // satellite.addMesh("solar3", new Rect(this.colorShader, 5, 5).setPos(0, 10, 0));
 
@@ -167,7 +202,7 @@ export class Scene {
             satellite,
             earth: new Sphere(this.textureShader, 30, 100, 100).rotate([0, -60, -180])
 
-            
+
             // pole1: new Cylinder(this.colorShader, 0.4, 0.8, 100),
             // pole2: new Cylinder(this.colorShader, 0.4, 0.8, 100),
             // body: new Cube(this.colorShader, 3),
@@ -193,19 +228,55 @@ export class Scene {
 
         this.rotation = 0;
         this.then = 0;
+    }
 
+    setupInput() {
+        document.addEventListener("keydown", (e) => {
+            this.key[e.keyCode] = true;
+        });
 
-        // this.meshes[0].setPos(-20, 0, 0);
-        // this.meshes[0].rotate([0, 0, 90]);
+        document.addEventListener("keyup", (e) => {
+            this.key[e.keyCode] = false;
+        });
 
-        // this.meshes[1].setPos(4, 0, 0);
-        // this.meshes[1].rotate([0, 0, 90]);
+        canvas.addEventListener("mousedown", (ev) => {
+            this.mouse.drag = true;
+            this.mouse.offX = ev.clientX;
+            this.mouse.offY = ev.clientY;
+        });
 
-        // (this.meshes[2] as Cube).setFaceColor(2, 1, 0, 0);
-        // (this.meshes[2] as Cube).setFaceColor(3, 1, 0, 0);
-        // (this.meshes['body'] as Cube).setFaceColor(2, 1, 0, 0);
-        // (this.meshes['body'] as Cube).setFaceColor(3, 1, 0, 0);
-        // this.meshes["body"].setPos(-20, 0, 0)
+        canvas.addEventListener("mouseup", (ev) => {
+            this.mouse.drag = false;
+        });
+
+        canvas.addEventListener("mousemove", (ev) => {
+            const mouse = this.mouse;
+            if (!mouse.drag) return;
+            if (ev.shiftKey) {
+                // console.log("shifting")
+                mouse.transX = (ev.clientX - mouse.offX) / 10;
+                //zRot = (xOffs - ev.clientX)*.3;
+            } else if (ev.altKey) {
+                mouse.transY = -(ev.clientY - mouse.offY) / 10;
+            } else {
+                mouse.rotY = - mouse.offX + ev.clientX;
+                mouse.rotX = - mouse.offY + ev.clientY;
+            }
+            mouse.offX = ev.clientX;
+            mouse.offY = ev.clientY;
+            //console.log("xOff= "+xOffs+" yOff="+yOffs);
+        });
+
+        function wheelHandler(ev, mouse) {
+            if (ev.altKey) mouse.transY = -ev.detail / 10;
+            else mouse.transZ = ev.detail;
+            //console.log("delta ="+ev.detail);
+            console.log(mouse.transZ);
+            ev.preventDefault();
+        }
+
+        canvas.addEventListener('mousewheel', (ev) => {wheelHandler(ev, this.mouse)}, false);
+        canvas.addEventListener('DOMMouseScroll', (ev) => {wheelHandler(ev, this.mouse)}, false);
     }
 
     async loadShaderFile(fileName) {
@@ -221,13 +292,28 @@ export class Scene {
     render(now: number) {
         now *= 0.001;
         let deltaTime = now - this.then;
-
+        console.log(this.mouse.drag)
         this.then = now;
-        // console.log(this.rotation);
 
-        this.rotation = this.rotation + deltaTime * 10;
+        this.rotation = this.orbitSpeed + this.rotation + deltaTime * 10;
 
+        if (this.key[39])
+            this.orbitRadius += 0.4;
+        if (this.key[37] && this.orbitRadius > 45)
+            this.orbitRadius -= 0.4;
 
+        if (this.key[38] && this.orbitSpeed < 3) {
+            this.orbitSpeed *= 1.02;
+            console.log(this.orbitSpeed)
+        }
+        if (this.key[40] && this.orbitSpeed > 1) {
+            this.orbitSpeed -= 0.1;
+        }
+
+        this.camera.move(this.mouse.transX, this.mouse.transY, this.mouse.transZ);
+        this.camera.rotate([this.mouse.rotX/2, this.mouse.rotY/2, 0]);
+
+        this.mouse.rotZ = this.mouse.rotZ = this.mouse.rotZ = this.mouse.transX = this.mouse.transY = this.mouse.transZ = 0;
 
         gl.clearColor(0.0, 0.1, 0.2, 1.0); // Clear to black, fully opaque
         gl.clearDepth(1.0); // Clear everything
@@ -236,31 +322,19 @@ export class Scene {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        // this.meshes["body"].rotate([1, 1, 1]);
-        // this.meshes[0].rotate([1, 1, 1]);
-        // this.meshes[3].rotate([0, 1, 0]);
-        // (this.meshes["satellite"] as Model).meshes["solar1"].rotate([1, 1, 1])
-        // this.meshes["satellite"].meshes["root"].setPos(50, this.rotation, 0).lookAt(0, 0, 0, this.camera)
-        // .rotate([0, 180, 0])
-        (this.meshes["satellite"] as Model).orbit(40, this.rotation, this.rotation)
+        (this.meshes["satellite"] as Model).orbit(this.orbitRadius, this.rotation, 60)
         this.meshes["satellite"].meshes["root"].lookAt(0, 0, 0, this.camera).rotate([0, 180, 0])
 
-        this.meshes["earth"].rotate([0, 1, 0]);
-
-        // this.meshes[1].setPos(-deltaTime*10, 0, 0);
-        // this.meshes[1].move(-1, 0, 0);
-
-        // this.meshes[1].setPos(-40, 0, 0);
-
+        this.meshes["earth"].rotate([0, 0.2, 0]);
 
 
         for (const key in this.meshes) {
             const mesh = this.meshes[key];
-            
+
             gl.useProgram(mesh.shader.shaderProgram);
             this.camera.uniformAttrib(mesh.shader);
             let localModelViewMatrix = mat4.create();
-            
+
             mat4.mul(localModelViewMatrix, this.camera.modelViewMatrix, mesh.modelViewMatrix);
 
             if (mesh instanceof BaseMesh) {
@@ -271,10 +345,10 @@ export class Scene {
                 );
             }
 
-            
+
             mesh.draw(this.camera);
         }
-        // console.log("rendered")
+
         requestAnimationFrame((n) => {
             this.render(n);
         })

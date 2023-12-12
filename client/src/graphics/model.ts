@@ -56,7 +56,7 @@ export class Model {
         let x = nx * r;
         let y = ny * r;
         let z = nz * r;
-        console.log(`x: ${x} y: ${y} z: ${z}`)
+        // console.log(`x: ${x} y: ${y} z: ${z}`)
         this.meshes["root"].setPos(x, y, z);
     }
 
