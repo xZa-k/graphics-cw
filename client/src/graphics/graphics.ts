@@ -1,4 +1,4 @@
-import { mat4, quat } from "gl-matrix";
+import { mat4, quat, vec3 } from "gl-matrix";
 import { Camera } from "./camera";
 import { BaseMesh, CircularPlane, Cube, Cylinder, Hemisphere, Rect, Sphere } from "./mesh";
 import { Shader } from "./shader";
@@ -144,7 +144,7 @@ export class Scene {
             .setColor(0.9, 0.7, 0)
             .setFaceColor(3, 0.388, 0.388, 0.388)
             .setFaceColor(2, 0.388, 0.388, 0.388)
-            .lookAt(0, 0, 0, this.camera)
+            .lookAt(0, 0, 0)
             .rotate([0, 180, 0])
         );
 
@@ -267,11 +267,12 @@ export class Scene {
             //console.log("xOff= "+xOffs+" yOff="+yOffs);
         });
 
-        function wheelHandler(ev, mouse) {
+        function wheelHandler(ev, mouse: MouseEvent) {
+            if (mouse.drag) return;
             if (ev.altKey) mouse.transY = -ev.detail / 10;
             else mouse.transZ = ev.detail;
             //console.log("delta ="+ev.detail);
-            console.log(mouse.transZ);
+            // console.log(mouse.transZ);
             ev.preventDefault();
         }
 
@@ -292,7 +293,6 @@ export class Scene {
     render(now: number) {
         now *= 0.001;
         let deltaTime = now - this.then;
-        console.log(this.mouse.drag)
         this.then = now;
 
         this.rotation = this.orbitSpeed + this.rotation + deltaTime * 10;
@@ -304,16 +304,27 @@ export class Scene {
 
         if (this.key[38] && this.orbitSpeed < 3) {
             this.orbitSpeed *= 1.02;
-            console.log(this.orbitSpeed)
         }
         if (this.key[40] && this.orbitSpeed > 1) {
             this.orbitSpeed -= 0.1;
         }
 
-        this.camera.move(this.mouse.transX, this.mouse.transY, this.mouse.transZ);
-        this.camera.rotate([this.mouse.rotX/2, this.mouse.rotY/2, 0]);
 
-        this.mouse.rotZ = this.mouse.rotZ = this.mouse.rotZ = this.mouse.transX = this.mouse.transY = this.mouse.transZ = 0;
+        for (const key in this.meshes) {
+            const mesh: BaseMesh | Model = this.meshes[key];
+            if (mesh instanceof Model) {
+                
+                // mesh.meshes["root"].rotateAround([0, 1, 1], [-20, 0, 0], this.camera.modelViewMatrix);
+                // mesh.meshes["root"].rotate([this.mouse.rotX/2, this.mouse.rotY/2, this.mouse.rotZ/2]);
+                
+            }
+            mesh.rotate([-this.mouse.rotX/2, -this.mouse.rotY/2, -this.mouse.rotZ/2]);
+            
+        }
+        this.camera.move(this.mouse.transX, this.mouse.transY, this.mouse.transZ);
+        // this.camera.rotate([this.mouse.rotX/2, this.mouse.rotY/2, this.mouse.rotZ/2]);
+
+        this.mouse.rotX = this.mouse.rotY = this.mouse.rotZ = this.mouse.transX = this.mouse.transY = this.mouse.transZ = 0;
 
         gl.clearColor(0.0, 0.1, 0.2, 1.0); // Clear to black, fully opaque
         gl.clearDepth(1.0); // Clear everything
@@ -321,9 +332,22 @@ export class Scene {
         gl.depthFunc(gl.LEQUAL); // Near things obscure far things
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        function extractRotation(matrix: mat4): vec3 {
+            const rotation: vec3 = vec3.create();
+            
+            // Extract the rotation angles from the rotation matrix
+            rotation[0] = Math.atan2(matrix[9], matrix[10]) * (180 / Math.PI); // Pitch
+            rotation[1] = Math.atan2(-matrix[8], Math.sqrt(matrix[9] * matrix[9] + matrix[10] * matrix[10])) * (180 / Math.PI); // Yaw
+            rotation[2] = Math.atan2(matrix[4], matrix[0]) * (180 / Math.PI); // Roll
+          
+            return rotation;
+        }
+        let earthRotation = extractRotation(this.meshes["earth"].modelViewMatrix);
+        // mat4.getRotation(earthRotation, this.meshes["earth"].modelViewMatrix);
+        (this.meshes["satellite"] as Model).orbit(this.orbitRadius, this.rotation, 120, earthRotation);
+        // (this.meshes["satellite"] as Model).rotate([0, 0, 70])
 
-        (this.meshes["satellite"] as Model).orbit(this.orbitRadius, this.rotation, 60)
-        this.meshes["satellite"].meshes["root"].lookAt(0, 0, 0, this.camera).rotate([0, 180, 0])
+        // this.meshes["satellite"].lookAt(0, 0, 0).rotate([0, 180, 0])
 
         this.meshes["earth"].rotate([0, 0.2, 0]);
 
@@ -346,7 +370,7 @@ export class Scene {
             }
 
 
-            mesh.draw(this.camera);
+            mesh.draw(this.camera.modelViewMatrix);
         }
 
         requestAnimationFrame((n) => {

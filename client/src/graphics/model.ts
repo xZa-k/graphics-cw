@@ -33,7 +33,14 @@ export class Model {
     }
 
     rotate(axis: vec3) {
+        // console.log(axis)
+        
         this.meshes["root"].rotate(axis);
+    }
+
+    lookAt(x: number, y: number, z: number) {
+        return this.meshes["root"].lookAt(x, y, z);
+        
     }
 
     setRotation() {
@@ -44,7 +51,7 @@ export class Model {
 
     }
 
-    orbit(r: number, phiDeg: number, thetaDeg: number){
+    orbit(r: number, phiDeg: number, thetaDeg: number, sphereRotation: vec3){
         const phi = phiDeg * (Math.PI/180);
         const theta = thetaDeg * (Math.PI/180);
 
@@ -57,19 +64,28 @@ export class Model {
         let y = ny * r;
         let z = nz * r;
         // console.log(`x: ${x} y: ${y} z: ${z}`)
-        this.meshes["root"].setPos(x, y, z);
+        // this.meshes["root"].rotate([2, 0, 0]);
+        const rotationMatrix = mat4.create();
+        mat4.rotateX(rotationMatrix, rotationMatrix, -sphereRotation[0] * (Math.PI / 180));
+        mat4.rotateY(rotationMatrix, rotationMatrix, -sphereRotation[1] * (Math.PI / 180));
+        mat4.rotateZ(rotationMatrix, rotationMatrix, -sphereRotation[2] * (Math.PI / 180));      
+
+        // const pos = mat4.getTranslation(vec3.create(), this.modelViewMatrix)
+        const rotatedPosition = vec3.transformMat4(vec3.create(), [x, y, z], rotationMatrix);
+        this.meshes["root"].setPos(rotatedPosition[0], rotatedPosition[1], rotatedPosition[2]);
+        this.meshes["root"].lookAt(0, 0, 0).rotate([0, 180, 0])
     }
 
-    draw(camera: Camera) {
+    draw(camera: mat4) {
         let localModelViewMatrix = mat4.create();
         let t;
-        t = mat4.mul(localModelViewMatrix, camera.modelViewMatrix, this.meshes["root"].modelViewMatrix);
+        t = mat4.mul(localModelViewMatrix, camera, this.meshes["root"].modelViewMatrix);
 
         for (const name in this.meshes) {
 
             const mesh = this.meshes[name];
             let offsetM: mat4 = mat4.create();
-            mat4.mul(offsetM, camera.modelViewMatrix, this.modelViewMatrix);
+            mat4.mul(offsetM, camera, this.modelViewMatrix);
             mat4.mul(localModelViewMatrix, offsetM, mesh.modelViewMatrix);
 
             gl.uniformMatrix4fv(

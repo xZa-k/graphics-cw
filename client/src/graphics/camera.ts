@@ -25,7 +25,7 @@ export class Camera {
         mat4.translate(
             this.modelViewMatrix,
             this.modelViewMatrix, 
-            [-0.0, 0.0, -10.0], // default starting position
+            [0.0, 0.0, -10.0], // default starting position
         ); 
     }
 
@@ -34,20 +34,36 @@ export class Camera {
     }
 
     move(x: number, y: number, z: number) {
+        let meshPos: [number, number, number] = [this.modelViewMatrix[12], this.modelViewMatrix[13], this.modelViewMatrix[14]]
+
+        const phi = 90 * (Math.PI/180);
+        const theta = 90 * (Math.PI/180);
+
+
+        let nx = Math.sin(theta) * Math.cos(phi);
+        let ny = Math.cos(theta);
+        let nz = Math.sin(theta) * Math.sin(phi);
+
+        let lx = nx * -200;
+        let ly = ny * -200;
+        let lz = nz * -200;
+
         mat4.translate(this.modelViewMatrix, this.modelViewMatrix, [x, y, z]);
+        // mat4.lookAt(this.modelViewMatrix, [lx, ly, lz], [x, y, z], [0, 1, 0]);
     }
 
     rotate(axis: vec3) {
+
+
         mat4.rotateX(this.modelViewMatrix, this.modelViewMatrix, axis[0] * (Math.PI / 180));
         mat4.rotateY(this.modelViewMatrix, this.modelViewMatrix, axis[1] * (Math.PI / 180));
         mat4.rotateZ(this.modelViewMatrix, this.modelViewMatrix, axis[2] * (Math.PI / 180));
-        return this;
     }
 
     uniformAttrib(shader: Shader) {
         gl.uniformMatrix4fv(shader.getUniform("uModelViewMatrix"), false, this.modelViewMatrix);
 
-        gl.uniformMatrix4fv(shader.getUniform("uProjectionMatrix"), false, this.projectionMatrix)
+        gl.uniformMatrix4fv(shader.getUniform("uProjectionMatrix"), false, this.projectionMatrix);
     }
 
 

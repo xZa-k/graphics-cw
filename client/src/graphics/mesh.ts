@@ -68,7 +68,7 @@ export abstract class BaseMesh {
 
     abstract buildVerts();
 
-    abstract draw(camera: Camera);
+    abstract draw(camera: mat4);
 
     constructor(shader: Shader) {
         this.shader = shader;
@@ -89,7 +89,7 @@ export abstract class BaseMesh {
         return this;
     }
 
-    lookAt(x: number, y: number, z: number, camera: Camera) {
+    lookAt(x: number, y: number, z: number) {
         // mat4.lookAt(this.modelViewMatrix, this.modelViewMatrix, )
         // camera.modelViewMatrix.
         let meshPos: [number, number, number] = [this.modelViewMatrix[12], this.modelViewMatrix[13], this.modelViewMatrix[14]]
@@ -115,9 +115,28 @@ export abstract class BaseMesh {
     }
 
     rotate(axis: vec3) {
+
         mat4.rotateX(this.modelViewMatrix, this.modelViewMatrix, axis[0] * (Math.PI / 180));
         mat4.rotateY(this.modelViewMatrix, this.modelViewMatrix, axis[1] * (Math.PI / 180));
         mat4.rotateZ(this.modelViewMatrix, this.modelViewMatrix, axis[2] * (Math.PI / 180));
+        return this;
+    }
+
+    rotateAround(axis: vec3, origin: vec3, world: mat4) {
+        let worldMatrix = mat4.create();
+        mat4.multiply(worldMatrix, world, this.modelViewMatrix);
+        mat4.translate(this.modelViewMatrix, this.modelViewMatrix, origin);
+
+
+        mat4.rotateX(this.modelViewMatrix, this.modelViewMatrix, axis[0] * (Math.PI / 180));
+        mat4.rotateY(this.modelViewMatrix, this.modelViewMatrix, axis[1] * (Math.PI / 180));
+        mat4.rotateZ(this.modelViewMatrix, this.modelViewMatrix, axis[2] * (Math.PI / 180));
+
+        vec3.scale(origin, origin, -1); // Negate the translation vector
+        mat4.translate(this.modelViewMatrix, this.modelViewMatrix, origin);
+        // let newworld =   mat4.multiply(parentWorldMatrix, parentWorldMatrix, localMatrix);
+        console.log()
+
         return this;
     }
 }
@@ -255,7 +274,7 @@ export class Cube extends BaseMesh {
         this.bindBuffers();
         // console.log(mat4.getTranslation())
         let localModelViewMatrix = mat4.create();
-        mat4.mul(localModelViewMatrix, camera.modelViewMatrix, this.modelViewMatrix);
+        mat4.mul(localModelViewMatrix, camera, this.modelViewMatrix);
         gl.uniformMatrix4fv(
             this.shader.getUniform("uModelViewMatrix"),
             false,
