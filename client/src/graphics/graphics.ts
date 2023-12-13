@@ -34,66 +34,184 @@ export class Scene {
     public vsTexSource: string = `
         attribute vec3 aVertexPosition;
         attribute vec4 aVertexColor;
-        // attribute vec2 aTextureCoord;
-       
-
         attribute vec3 aVertexNormal;
+
+        uniform mat3 uNMatrix;
 
         uniform mat4 uModelViewMatrix;
         uniform mat4 uProjectionMatrix;
         uniform mat4 uLocalModelMatrix;
-
+        
         varying vec4 vColor;
-        varying vec2 vTextureCoord;
         varying vec3 vNormal;
+        varying vec3 vLightWeighting;
+        
+        const vec3 uLightPosition = vec3(-10, -20, -60);
+        const vec3 uAmbientColor = vec3(0.5, 0.5, 0.5);
+        const vec3 uDiffuseColor = vec3(1.0, 1.0, 1.0);
+        const vec3 uSpecularColor = vec3(1.0, 1.0, 1.0);
+
+        const float shininess = 32.0;
+        
         
 
         void main(void) {
+
+
+            // Get the vertex position in camera/eye coordinates and convert
+            // the homogeneous coordinates back to the usual 3D coordinates for
+            // subsequent calculations.
+            vec4 vertexPositionEye4 = uModelViewMatrix * vec4(aVertexPosition, 1.0);
+            vec3 vertexPositionEye3 = vertexPositionEye4.xyz /
+            vertexPositionEye4.w;
+            // Calculate the vector (L) to the point light source
+            // First, transform the coordinate of light source into
+            //eye coordinate system
+            vec4 lightPositionEye4 = uModelViewMatrix * vec4(uLightPosition, 1.0);
+            vec3 lightPositionEye3 = lightPositionEye4.xyz /
+            lightPositionEye4.w;
+            // Calculate the vector L
+            vec3 vectorToLightSource = normalize(lightPositionEye3 -
+            vertexPositionEye3);
+            // The following line of code provides a different way to calculate
+            // vector L. What is the difference between the two approaches?
+            // Try it out.
+            //vec3 vectorToLightSource = normalize(uLightPosition -
+            // vertexPositionEye3);
+            // Transform the normal (N) to eye coordinates
+            vec3 normalEye = normalize(uNMatrix * aVertexNormal);
+            // Calculate N dot L for diffuse lighting
+            float diffuseLightWeighting = max(dot(normalEye, vectorToLightSource),
+            0.0);
+            // Calculate the reflection vector (R) that is needed for specular
+            // light. Function reflect() is the GLSL function for calculation
+            // of the reflective vector R
+            vec3 reflectionVector = normalize(reflect(-vectorToLightSource,
+            normalEye));
+            // In terms of the camera coordinate system, the camera/eye
+            // is alway located at in the origin (0.0, 0.0, 0.0) (because the
+            // coordinate system is rigidly attached to the camera)
+            // Calculate view vector (V) in camera coordinates as:
+            // (0.0, 0.0, 0.0) - vertexPositionEye3
+            vec3 viewVectorEye = -normalize(vertexPositionEye3);
+            float rdotv = max(dot(reflectionVector, viewVectorEye), 0.0);
+            float specularLightWeighting = pow(rdotv, shininess);
+            // Sum up all three reflection components and send to the fragment
+            // shader
+            vLightWeighting = uAmbientColor +
+            uDiffuseColor * diffuseLightWeighting +
+            uSpecularColor * specularLightWeighting;
+
             gl_Position =  uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
-            
+            // vColor = vec4(finalColor, aVertexColor.a);
+            vColor = aVertexColor * vec4(vLightWeighting, 1.0);
             vColor = aVertexColor;
             vNormal = aVertexNormal;
         }
     `;
     public fsTexSource: string = `
+        precision mediump float;
         varying lowp vec4 vColor;
         varying highp vec2 vTextureCoord;
         varying highp vec3 vNormal;
+        varying vec3 vLightWeighting;
 
         uniform sampler2D uSampler;
 
         void main() {      
             highp vec2 Coordinates = vec2( 0.5 + atan( vNormal.z, vNormal.x ) / ( 2. * 3.1415 ), 0.5 - asin( vNormal.y ) / 3.1415);
-            gl_FragColor = texture2D(uSampler, Coordinates);
+
+            vec4 textureColor = texture2D(uSampler, Coordinates);
+            // gl_FragColor = texture2D(uSampler, Coordinates);
+            gl_FragColor = vec4(vLightWeighting.rgb * textureColor.rgb,
+                textureColor.a);
         }
   `;
 
     public vsColSource: string = `
-        attribute vec3 aVertexPosition;
-        attribute vec4 aVertexColor;
+            attribute vec3 aVertexPosition;
+            attribute vec4 aVertexColor;
+            attribute vec3 aVertexNormal;
 
-        attribute vec3 aVertexNormal;
+            uniform mat3 uNMatrix;
 
-        uniform mat4 uModelViewMatrix;
-        uniform mat4 uProjectionMatrix;
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform mat4 uLocalModelMatrix;
+            
+            varying vec4 vColor;
+            varying vec3 vNormal;
+            varying vec3 vLightWeighting;
+            
+            const vec3 uLightPosition = vec3(-10, -20, -60);
+            const vec3 uAmbientColor = vec3(0.5, 0.5, 0.5);
+            const vec3 uDiffuseColor = vec3(1.0, 1.0, 1.0);
+            const vec3 uSpecularColor = vec3(1.0, 1.0, 1.0);
 
-        varying vec4 vColor;
-        varying vec3 vNormal;
+            const float shininess = 32.0;
         
 
         void main(void) {
+            // Get the vertex position in camera/eye coordinates and convert
+            // the homogeneous coordinates back to the usual 3D coordinates for
+            // subsequent calculations.
+            vec4 vertexPositionEye4 = uModelViewMatrix * vec4(aVertexPosition, 1.0);
+            vec3 vertexPositionEye3 = vertexPositionEye4.xyz /
+            vertexPositionEye4.w;
+            // Calculate the vector (L) to the point light source
+            // First, transform the coordinate of light source into
+            //eye coordinate system
+            vec4 lightPositionEye4 = uModelViewMatrix * vec4(uLightPosition, 1.0);
+            vec3 lightPositionEye3 = lightPositionEye4.xyz /
+            lightPositionEye4.w;
+            // Calculate the vector L
+            vec3 vectorToLightSource = normalize(lightPositionEye3 -
+            vertexPositionEye3);
+            // The following line of code provides a different way to calculate
+            // vector L. What is the difference between the two approaches?
+            // Try it out.
+            //vec3 vectorToLightSource = normalize(uLightPosition -
+            // vertexPositionEye3);
+            // Transform the normal (N) to eye coordinates
+            vec3 normalEye = normalize(uNMatrix * aVertexNormal);
+            // Calculate N dot L for diffuse lighting
+            float diffuseLightWeighting = max(dot(normalEye, vectorToLightSource),
+            0.0);
+            // Calculate the reflection vector (R) that is needed for specular
+            // light. Function reflect() is the GLSL function for calculation
+            // of the reflective vector R
+            vec3 reflectionVector = normalize(reflect(-vectorToLightSource,
+            normalEye));
+            // In terms of the camera coordinate system, the camera/eye
+            // is alway located at in the origin (0.0, 0.0, 0.0) (because the
+            // coordinate system is rigidly attached to the camera)
+            // Calculate view vector (V) in camera coordinates as:
+            // (0.0, 0.0, 0.0) - vertexPositionEye3
+            vec3 viewVectorEye = -normalize(vertexPositionEye3);
+            float rdotv = max(dot(reflectionVector, viewVectorEye), 0.0);
+            float specularLightWeighting = pow(rdotv, shininess);
+            // Sum up all three reflection components and send to the fragment
+            // shader
+            vLightWeighting = uAmbientColor +
+            uDiffuseColor * diffuseLightWeighting +
+            uSpecularColor * specularLightWeighting;
+
             gl_Position =  uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
+            // vColor = vec4(finalColor, aVertexColor.a);
+            vColor = aVertexColor * vec4(vLightWeighting, 1.0);
             vColor = aVertexColor;
             vNormal = aVertexNormal;
         }
     `;
     public fsColSource: string = `
-    varying lowp vec4 vColor;
-    varying highp vec3 vNormal;
+        precision mediump float;
+        varying vec4 vColor;
+        varying highp vec3 vNormal;
+        varying vec3 vLightWeighting;
 
         void main() {      
-            gl_FragColor = vColor;
-
+            // gl_FragColor = vColor;
+            gl_FragColor = vec4(vLightWeighting.rgb * vColor.rgb, 1.0);
         }
   `;
 
@@ -276,8 +394,8 @@ export class Scene {
             ev.preventDefault();
         }
 
-        canvas.addEventListener('mousewheel', (ev) => {wheelHandler(ev, this.mouse)}, false);
-        canvas.addEventListener('DOMMouseScroll', (ev) => {wheelHandler(ev, this.mouse)}, false);
+        canvas.addEventListener('mousewheel', (ev) => { wheelHandler(ev, this.mouse) }, false);
+        canvas.addEventListener('DOMMouseScroll', (ev) => { wheelHandler(ev, this.mouse) }, false);
     }
 
     async loadShaderFile(fileName) {
@@ -313,13 +431,13 @@ export class Scene {
         for (const key in this.meshes) {
             const mesh: BaseMesh | Model = this.meshes[key];
             if (mesh instanceof Model) {
-                
+
                 // mesh.meshes["root"].rotateAround([0, 1, 1], [-20, 0, 0], this.camera.modelViewMatrix);
                 // mesh.meshes["root"].rotate([this.mouse.rotX/2, this.mouse.rotY/2, this.mouse.rotZ/2]);
-                
+
             }
-            mesh.rotate([-this.mouse.rotX/2, -this.mouse.rotY/2, -this.mouse.rotZ/2]);
-            
+            mesh.rotate([-this.mouse.rotX / 2, -this.mouse.rotY / 2, -this.mouse.rotZ / 2]);
+
         }
         this.camera.move(this.mouse.transX, this.mouse.transY, this.mouse.transZ);
         // this.camera.rotate([this.mouse.rotX/2, this.mouse.rotY/2, this.mouse.rotZ/2]);
@@ -334,12 +452,12 @@ export class Scene {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         function extractRotation(matrix: mat4): vec3 {
             const rotation: vec3 = vec3.create();
-            
+
             // Extract the rotation angles from the rotation matrix
             rotation[0] = Math.atan2(matrix[9], matrix[10]) * (180 / Math.PI); // Pitch
             rotation[1] = Math.atan2(-matrix[8], Math.sqrt(matrix[9] * matrix[9] + matrix[10] * matrix[10])) * (180 / Math.PI); // Yaw
             rotation[2] = Math.atan2(matrix[4], matrix[0]) * (180 / Math.PI); // Roll
-          
+
             return rotation;
         }
         let earthRotation = extractRotation(this.meshes["earth"].modelViewMatrix);

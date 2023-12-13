@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "gl-matrix";
+import { mat3, mat4, vec3 } from "gl-matrix";
 import { gl } from "./graphics";
 import { Shader } from "./shader";
 import { Camera } from "./camera";
@@ -12,6 +12,7 @@ export abstract class BaseMesh {
 
     public verts: number[];
     indices: number[];
+
     modelViewMatrix: mat4;
     color: vec3 = [0, 1, 0];
 
@@ -60,6 +61,13 @@ export abstract class BaseMesh {
         );
         gl.enableVertexAttribArray(this.shader.getAttrb("aVertexNormal"));
 
+
+        // var normalMatrix = mat3.create();
+        // mat4.toInverseMat3(pwgl.modelViewMatrix,
+        // normalMatrix);
+        // mat3.transpose(normalMatrix);
+        // gl.uniformMatrix3fv(pwgl.uniformNormalMatrixLoc,
+        // false, normalMatrix);
         // this.useTexture("./img/earth.jpg");
 
 
@@ -493,8 +501,15 @@ export class Sphere extends BaseMesh {
 
     }
 
-    draw() {
+    draw(camera: mat4) {
         this.bindBuffers();
+        
+        let normalMatrix = mat3.create();
+        mat3.fromMat4(normalMatrix, this.modelViewMatrix);
+
+        // Take the transpose of the upper-left 3x3 matrix
+        mat3.transpose(normalMatrix, normalMatrix);
+        gl.uniformMatrix3fv(this.shader.getUniform("uNMatrix"), false, normalMatrix);
 
         gl.drawElements(gl.TRIANGLE_STRIP, this.indices.length, gl.UNSIGNED_SHORT, 0);
     }
