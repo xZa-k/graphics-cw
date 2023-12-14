@@ -46,12 +46,12 @@ export class Scene {
         varying vec3 vNormal;
         varying vec3 vLightWeighting;
         
-        const vec3 uLightPosition = vec3(-10, -20, -60);
+        const vec3 uLightPosition = vec3(-10, -50, -60);
         const vec3 uAmbientColor = vec3(0.5, 0.5, 0.5);
         const vec3 uDiffuseColor = vec3(1.0, 1.0, 1.0);
         const vec3 uSpecularColor = vec3(1.0, 1.0, 1.0);
 
-        const float shininess = 32.0;
+        const float shininess = 20.0;
         
         
 
@@ -71,15 +71,10 @@ export class Scene {
             vec3 lightPositionEye3 = lightPositionEye4.xyz /
             lightPositionEye4.w;
             // Calculate the vector L
-            vec3 vectorToLightSource = normalize(lightPositionEye3 -
+            vec3 vectorToLightSource = normalize(uLightPosition -
             vertexPositionEye3);
-            // The following line of code provides a different way to calculate
-            // vector L. What is the difference between the two approaches?
-            // Try it out.
-            //vec3 vectorToLightSource = normalize(uLightPosition -
-            // vertexPositionEye3);
             // Transform the normal (N) to eye coordinates
-            vec3 normalEye = normalize(uNMatrix * aVertexNormal);
+            vec3 normalEye = normalize(aVertexNormal);
             // Calculate N dot L for diffuse lighting
             float diffuseLightWeighting = max(dot(normalEye, vectorToLightSource),
             0.0);
@@ -105,8 +100,9 @@ export class Scene {
             gl_Position =  uProjectionMatrix * uModelViewMatrix * vec4(aVertexPosition, 1.0);
             // vColor = vec4(finalColor, aVertexColor.a);
             vColor = aVertexColor * vec4(vLightWeighting, 1.0);
-            vColor = aVertexColor;
+            // vColor = aVertexColor;
             vNormal = aVertexNormal;
+            // vNormal = normalize(uNMatrix * aVertexNormal);
         }
     `;
     public fsTexSource: string = `
@@ -165,15 +161,15 @@ export class Scene {
             vec3 lightPositionEye3 = lightPositionEye4.xyz /
             lightPositionEye4.w;
             // Calculate the vector L
-            vec3 vectorToLightSource = normalize(lightPositionEye3 -
-            vertexPositionEye3);
+            // vec3 vectorToLightSource = normalize(lightPositionEye3 -
+            // vertexPositionEye3);
             // The following line of code provides a different way to calculate
             // vector L. What is the difference between the two approaches?
             // Try it out.
-            //vec3 vectorToLightSource = normalize(uLightPosition -
-            // vertexPositionEye3);
+            vec3 vectorToLightSource = normalize(uLightPosition -
+            vertexPositionEye3);
             // Transform the normal (N) to eye coordinates
-            vec3 normalEye = normalize(uNMatrix * aVertexNormal);
+            vec3 normalEye = normalize(aVertexNormal);
             // Calculate N dot L for diffuse lighting
             float diffuseLightWeighting = max(dot(normalEye, vectorToLightSource),
             0.0);

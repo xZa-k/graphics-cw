@@ -477,7 +477,7 @@ export class Sphere extends BaseMesh {
         const imgElement = new Image();
         imgElement.src = img;
         imgElement.hidden = true;
-        gl.bindTexture(gl.TEXTURE_2D, null);
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
 
         imgElement.onload = function () {
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);

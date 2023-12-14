@@ -57,4 +57,8 @@ module.exports = {
       changeOrigin: true,
     },
   },
+  devtool: 'inline-source-map', // Add source maps for better debugging
+  optimization: {
+    minimize: false // Disable minification
+  }
 };
