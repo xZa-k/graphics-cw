@@ -17,15 +17,19 @@ export class Model {
         [key: string]: BaseMesh
     };
 
+    public get root(): BaseMesh {
+        return this.meshes["root"];
+    }
+
     public get modelViewMatrix(): mat4 {
-        return this.meshes["root"].modelViewMatrix;
+        return this.root.modelViewMatrix;
     }
     public set modelViewMatrix(value: mat4) {
-        this.meshes["root"].modelViewMatrix = value;
+        this.root.modelViewMatrix = value;
     }
     private _shader: Shader;
     public get shader(): Shader {
-        return this.meshes["root"].shader;
+        return this.root.shader;
     }
 
     constructor() {
@@ -35,22 +39,25 @@ export class Model {
     rotate(axis: vec3) {
         // console.log(axis)
         
-        this.meshes["root"].rotate(axis);
+        this.root.rotate(axis);
     }
 
     lookAt(x: number, y: number, z: number) {
-        return this.meshes["root"].lookAt(x, y, z);
+        return this.root.lookAt(x, y, z);
         
     }
 
     setRotation() {
-
+        
     }
 
     setPos() {
 
     }
 
+    // uses sphereical coordinates to orbit around a sphere
+    // uses the sphererotation to offset the orbit so that when it rotates, the relative
+    // position stays the same
     orbit(r: number, phiDeg: number, thetaDeg: number, sphereRotation: vec3){
         const phi = phiDeg * (Math.PI/180);
         const theta = thetaDeg * (Math.PI/180);
@@ -63,23 +70,23 @@ export class Model {
         let x = nx * r;
         let y = ny * r;
         let z = nz * r;
-        // console.log(`x: ${x} y: ${y} z: ${z}`)
-        // this.meshes["root"].rotate([2, 0, 0]);
+
+        // some transformations to offset the sphere then rotate it by phi and theta (x, y, z)
         const rotationMatrix = mat4.create();
         mat4.rotateX(rotationMatrix, rotationMatrix, -sphereRotation[0] * (Math.PI / 180));
         mat4.rotateY(rotationMatrix, rotationMatrix, -sphereRotation[1] * (Math.PI / 180));
         mat4.rotateZ(rotationMatrix, rotationMatrix, -sphereRotation[2] * (Math.PI / 180));      
 
-        // const pos = mat4.getTranslation(vec3.create(), this.modelViewMatrix)
         const rotatedPosition = vec3.transformMat4(vec3.create(), [x, y, z], rotationMatrix);
-        this.meshes["root"].setPos(rotatedPosition[0], rotatedPosition[1], rotatedPosition[2]);
-        this.meshes["root"].lookAt(0, 0, 0).rotate([0, 180, 0])
+        this.root.setPos(rotatedPosition[0], rotatedPosition[1], rotatedPosition[2]);
+        this.root.lookAt(0, 0, 0).rotate([0, 180, 0])
     }
 
+    // draw needs to know the camera (global modelviewmatrix) to have relative drawing
+    // the draw function has any child mesh use relative coordinates to the root,
+    // allowing for meshes
     draw(camera: mat4) {
         let localModelViewMatrix = mat4.create();
-        let t;
-        t = mat4.mul(localModelViewMatrix, camera, this.meshes["root"].modelViewMatrix);
 
         for (const name in this.meshes) {
 

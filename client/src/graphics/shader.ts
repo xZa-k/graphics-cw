@@ -22,9 +22,9 @@ export class Shader {
         this.uniformLocations = {};
 
         this.shaderProgram = this.initShaderProgram(vsSource, fsSource);
-        // console.log(this.shaderProgram)
     }
 
+    // creates a shader program from two sources
     initShaderProgram(vsSource: string, fsSource: string) {
         const vShader = this.loadShader(this.gl.VERTEX_SHADER, vsSource);
         const fShader = this.loadShader(this.gl.FRAGMENT_SHADER, fsSource);

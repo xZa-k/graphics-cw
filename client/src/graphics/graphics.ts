@@ -212,7 +212,8 @@ export class Scene {
   `;
 
 
-
+    // two different shaders for texture and color,
+    // could maybe be simplified to just one, or have a better method for switching them
     public textureShader: Shader;
     public colorShader: Shader;
 
@@ -251,8 +252,8 @@ export class Scene {
 
         this.orbitRadius = 45;
         this.orbitSpeed = 0.2;
-        // satellite
 
+        // creates a sattelite model
         satellite.addMesh("root", new Cube(this.colorShader, 3)
             .setPos(50, -10, 0)
             .setColor(0.9, 0.7, 0)
@@ -291,7 +292,6 @@ export class Scene {
 
         satellite.addMesh("dish", new Hemisphere(this.colorShader, 4, 100, 100)
             .setColor(0.9, 0.7, 0)
-
             .setPos(0, 0, 8)
             .rotate([-90, 0, 0])
         );
@@ -301,40 +301,10 @@ export class Scene {
             .setPos(0, 0, 8)
             .rotate([-90, 0, 0])
         );
-        // satellite.addMesh("solar3", new Rect(this.colorShader, 5, 5).setPos(0, 10, 0));
-
-
-
-
-        // (satellite.getMesh("root") as Cube).setPos(0, 20, 0);
-        // (satellite.getMesh("solar1") as Rect).setPos(-20, 0, 0);
-
-        // let earth = new Model();
-        // earth.addMesh("root", new Sphere(this.textureShader, 30, 100, 100).rotate([0, 0, 180]))
         this.meshes = {
-
             satellite,
             earth: new Sphere(this.textureShader, 30, 100, 100).rotate([0, -60, -180])
-
-
-            // pole1: new Cylinder(this.colorShader, 0.4, 0.8, 100),
-            // pole2: new Cylinder(this.colorShader, 0.4, 0.8, 100),
-            // body: new Cube(this.colorShader, 3),
-            // solar1: new Rect(this.colorShader, 5, 20),
         }
-
-        // this.meshes = [
-        //     // new CubeMesh(this.shader),
-        //     // new Hemisphere(this.colorShader, 1, 100, 100)
-        //     // new Sphere(this.textureShader, 30, 100, 100),
-        //     // new Cube(this.colorShader, 3),
-
-        //     new Cylinder(this.colorShader, 0.4, 0.8, 100),
-        //     new Cylinder(this.colorShader, 0.4, 0.8, 100),
-        //     new Cube(this.colorShader, 3),
-        //     new Rect(this.colorShader, 5, 20),
-
-
 
         this.camera = new Camera();
         this.camera.setPos(0, 0, -200);
@@ -344,6 +314,8 @@ export class Scene {
         this.then = 0;
     }
 
+    // setsup the event listeners
+    // sets the info to the mouse object
     setupInput() {
         document.addEventListener("keydown", (e) => {
             this.key[e.keyCode] = true;
@@ -367,9 +339,7 @@ export class Scene {
             const mouse = this.mouse;
             if (!mouse.drag) return;
             if (ev.shiftKey) {
-                // console.log("shifting")
                 mouse.transX = (ev.clientX - mouse.offX) / 10;
-                //zRot = (xOffs - ev.clientX)*.3;
             } else if (ev.altKey) {
                 mouse.transY = -(ev.clientY - mouse.offY) / 10;
             } else {
@@ -378,22 +348,22 @@ export class Scene {
             }
             mouse.offX = ev.clientX;
             mouse.offY = ev.clientY;
-            //console.log("xOff= "+xOffs+" yOff="+yOffs);
         });
 
         function wheelHandler(ev, mouse: MouseEvent) {
             if (mouse.drag) return;
             if (ev.altKey) mouse.transY = -ev.detail / 10;
             else mouse.transZ = ev.detail;
-            //console.log("delta ="+ev.detail);
-            // console.log(mouse.transZ);
             ev.preventDefault();
         }
 
+        // have to pass mouse this way otherwise "this" is the canvas, not the scene
         canvas.addEventListener('mousewheel', (ev) => { wheelHandler(ev, this.mouse) }, false);
         canvas.addEventListener('DOMMouseScroll', (ev) => { wheelHandler(ev, this.mouse) }, false);
     }
 
+
+    // doesnt work ignore
     async loadShaderFile(fileName) {
         try {
             const response = await fetch(`./${fileName}`);
@@ -405,12 +375,22 @@ export class Scene {
     }
 
     render(now: number) {
+
+        // deltatime, but is only currently used for consistently updating the rotation
+        // could be improved but kept the same for simplicity
         now *= 0.001;
         let deltaTime = now - this.then;
         this.then = now;
 
         this.rotation = this.orbitSpeed + this.rotation + deltaTime * 10;
 
+        // sets background colour and stuff
+        gl.clearColor(0.0, 0.1, 0.2, 1.0); // Clear to black, fully opaque
+        gl.clearDepth(1.0); // Clear everything
+        gl.enable(gl.DEPTH_TEST); // Enable depth testing
+        gl.depthFunc(gl.LEQUAL); // Near things obscure far things
+
+        // tests for any key events
         if (this.key[39])
             this.orbitRadius += 0.4;
         if (this.key[37] && this.orbitRadius > 45)
@@ -426,24 +406,13 @@ export class Scene {
 
         for (const key in this.meshes) {
             const mesh: BaseMesh | Model = this.meshes[key];
-            if (mesh instanceof Model) {
-
-                // mesh.meshes["root"].rotateAround([0, 1, 1], [-20, 0, 0], this.camera.modelViewMatrix);
-                // mesh.meshes["root"].rotate([this.mouse.rotX/2, this.mouse.rotY/2, this.mouse.rotZ/2]);
-
-            }
             mesh.rotate([-this.mouse.rotX / 2, -this.mouse.rotY / 2, -this.mouse.rotZ / 2]);
-
         }
         this.camera.move(this.mouse.transX, this.mouse.transY, this.mouse.transZ);
-        // this.camera.rotate([this.mouse.rotX/2, this.mouse.rotY/2, this.mouse.rotZ/2]);
 
         this.mouse.rotX = this.mouse.rotY = this.mouse.rotZ = this.mouse.transX = this.mouse.transY = this.mouse.transZ = 0;
 
-        gl.clearColor(0.0, 0.1, 0.2, 1.0); // Clear to black, fully opaque
-        gl.clearDepth(1.0); // Clear everything
-        gl.enable(gl.DEPTH_TEST); // Enable depth testing
-        gl.depthFunc(gl.LEQUAL); // Near things obscure far things
+        
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         function extractRotation(matrix: mat4): vec3 {
@@ -453,15 +422,11 @@ export class Scene {
             rotation[0] = Math.atan2(matrix[9], matrix[10]) * (180 / Math.PI); // Pitch
             rotation[1] = Math.atan2(-matrix[8], Math.sqrt(matrix[9] * matrix[9] + matrix[10] * matrix[10])) * (180 / Math.PI); // Yaw
             rotation[2] = Math.atan2(matrix[4], matrix[0]) * (180 / Math.PI); // Roll
-
+            
             return rotation;
         }
         let earthRotation = extractRotation(this.meshes["earth"].modelViewMatrix);
-        // mat4.getRotation(earthRotation, this.meshes["earth"].modelViewMatrix);
         (this.meshes["satellite"] as Model).orbit(this.orbitRadius, this.rotation, 120, earthRotation);
-        // (this.meshes["satellite"] as Model).rotate([0, 0, 70])
-
-        // this.meshes["satellite"].lookAt(0, 0, 0).rotate([0, 180, 0])
 
         this.meshes["earth"].rotate([0, 0.2, 0]);
 

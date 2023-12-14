@@ -49,7 +49,6 @@ export class Camera {
         let lz = nz * -200;
 
         mat4.translate(this.modelViewMatrix, this.modelViewMatrix, [x, y, z]);
-        // mat4.lookAt(this.modelViewMatrix, [lx, ly, lz], [x, y, z], [0, 1, 0]);
     }
 
     rotate(axis: vec3) {

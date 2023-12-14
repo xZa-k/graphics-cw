@@ -5,14 +5,14 @@ import { Camera } from "./camera";
 
 
 export abstract class BaseMesh {
-    public vertexBuffer: WebGLBuffer;
-    public indexBuffer: WebGLBuffer;
+    vertexBuffer: WebGLBuffer;
+    indexBuffer: WebGLBuffer;
+    shader: Shader;
 
-    public shader: Shader;
-
-    public verts: number[];
+    verts: number[];
     indices: number[];
 
+    // every mesh has its own modelviewmatrix
     modelViewMatrix: mat4;
     color: vec3 = [0, 1, 0];
 
@@ -26,6 +26,7 @@ export abstract class BaseMesh {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
     }
 
+    // Sets up the basic attribs every mesh has
     bindBuffers() {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
@@ -156,36 +157,25 @@ export class Cube extends BaseMesh {
         super(shader);
         this.size = size;
         this.buildVerts();
-
-
-        // this.buildVerts();
         this.setupBuffers();
     }
 
     setFaceColor(face: number, r: number, g: number, b: number) {
         const offset = 3;
-        // console.log(this.verts)
         this.color = vec3.create();
         this.color[0] = r;
         this.color[1] = g;
         this.color[2] = b;
 
+        // goes over every vertex and sets the color, maybe change to uniform
         for (let i = 0; i < 4; i++) {
             const vi = i * (10) + offset + (face * 10 * 4);
-            // console.log(vi);
             this.verts[vi] = r;
             this.verts[vi+1] = g;
             this.verts[vi+2] = b;
 
             
         }
-        // console.log(offset)
-        // console.log(this.verts[offset], this.verts[offset + 1], this.verts[offset + 2]);
-
-        // this.verts[offset] = r;
-        // this.verts[offset + 1] = g;
-        // this.verts[offset + 2] = b;
-        // console.log(this.verts[offset], this.verts[offset + 1], this.verts[offset + 2]);
         this.setupBuffers();
         return this;
     }
@@ -197,37 +187,31 @@ export class Cube extends BaseMesh {
         const b = this.color[2];
         this.verts = [
             // x, y, z, r, g, b, a, nx, ny, nz
-            // Front face
             -size, -size, size, r, g, b, 1.0, 0, 0, 1,
             -size, size, size, r, g, b, 1.0, 0, 0, 1,
             size, size, size, r, g, b, 1.0, 0, 0, 1,
             size, -size, size, r, g, b, 1.0, 0, 0, 1,
 
-            // Back face
             -size, -size, -size, r, g, b, 1.0, 0, 0, -1,
             -size, size, -size, r, g, b, 1.0, 0, 0, -1,
             size, size, -size, r, g, b, 1.0, 0, 0, -1,
             size, -size, -size, r, g, b, 1.0, 0, 0, -1,
 
-            // Left face
             -size, -size, -size, r, g, b, 1.0, -1, 0, 0,
             -size, size, -size, r, g, b, 1.0, -1, 0, 0,
             -size, size, size, r, g, b, 1.0, -1, 0, 0,
             -size, -size, size, r, g, b, 1.0, -1, 0, 0,
 
-            // Right face
             size, -size, -size, r, g, b, 1.0, 1, 0, 0,
             size, size, -size, r, g, b, 1.0, 1, 0, 0,
             size, size, size, r, g, b, 1.0, 1, 0, 0,
             size, -size, size, r, g, b, 1.0, 1, 0, 0,
 
-            // Top face
             -size, size, -size, r, g, b, 1.0, 0, 1, 0,
             -size, size, size, r, g, b, 1.0, 0, 1, 0,
             size, size, size, r, g, b, 1.0, 0, 1, 0,
             size, size, -size, r, g, b, 1.0, 0, 1, 0,
 
-            // Bottom face
             -size, -size, -size, r, g, b, 1.0, 0, -1, 0,
             -size, -size, size, r, g, b, 1.0, 0, -1, 0,
             size, -size, size, r, g, b, 1.0, 0, -1, 0,
@@ -238,31 +222,13 @@ export class Cube extends BaseMesh {
         // between arrays and elements
 
         this.indices = [
-            // Front face
             0, 1, 2, 0, 2, 3,
-            // Back face
             4, 5, 6, 4, 6, 7,
-            // Left face
             8, 9, 10, 8, 10, 11,
-            // Right face
             12, 13, 14, 12, 14, 15,
-            // Top face
             16, 17, 18, 16, 18, 19,
-            // Bottom face
             20, 21, 22, 20, 22, 23,
         ];
-
-
-
-
-        // this.indices = [
-        //     0, 2, 1, 0, 3, 2,
-        //     4, 3, 0, 4, 7, 3,
-        //     4, 1, 5, 4, 0, 1,
-        //     3, 6, 2, 3, 7, 6,
-        //     1, 6, 5, 1, 2, 6,
-        //     7, 5, 6, 7, 4, 5
-        // ];
 
     }
 
@@ -272,7 +238,6 @@ export class Cube extends BaseMesh {
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices), gl.STATIC_DRAW);
 
         this.vertexBuffer = gl.createBuffer();
-        // console.log("update vert")
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.verts), gl.STATIC_DRAW);
@@ -280,7 +245,6 @@ export class Cube extends BaseMesh {
 
     draw(camera) {
         this.bindBuffers();
-        // console.log(mat4.getTranslation())
         let localModelViewMatrix = mat4.create();
         mat4.mul(localModelViewMatrix, camera, this.modelViewMatrix);
         gl.uniformMatrix4fv(
@@ -304,15 +268,10 @@ export class Rect extends BaseMesh {
         this.width = width;
         this.depth = depth;
         this.buildVerts();
-
-
-        // this.buildVerts();
         this.setupBuffers();
     }
 
     buildVerts() {
-        const height = this.height;
-        const width = this.width;
         const halfWidth = this.width/2;
         const halfHeight = this.height/2;
         const halfDepth = this.depth/2;
@@ -320,40 +279,34 @@ export class Rect extends BaseMesh {
         const r = this.color[0];
         const g = this.color[1];
         const b = this.color[2];
-        // console.log(this.verts);
 
+        // Same as cube but different params
         this.verts = [
-            // Front face
             -halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 0, 0, 1,
             -halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 0, 0, 1,
             halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 0, 0, 1,
             halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 0, 0, 1,
     
-            // Back face
             -halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 0, 0, -1,
             halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 0, 0, -1,
             halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 0, 0, -1,
             -halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 0, 0, -1,
     
-            // Top face
             -halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 0, 1, 0,
             -halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 0, 1, 0,
             halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 0, 1, 0,
             halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 0, 1, 0,
     
-            // Bottom face
             -halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 0, -1, 0,
             halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 0, -1, 0,
             halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 0, -1, 0,
             -halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 0, -1, 0,
     
-            // Right face
             halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, 1, 0, 0,
             halfWidth, halfHeight, -halfDepth, r, g, b, 1.0, 1, 0, 0,
             halfWidth, halfHeight, halfDepth, r, g, b, 1.0, 1, 0, 0,
             halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, 1, 0, 0,
     
-            // Left face
             -halfWidth, -halfHeight, -halfDepth, r, g, b, 1.0, -1, 0, 0,
             -halfWidth, -halfHeight, halfDepth, r, g, b, 1.0, -1, 0, 0,
             -halfWidth, halfHeight, halfDepth, r, g, b, 1.0, -1, 0, 0,
@@ -484,7 +437,6 @@ export class Sphere extends BaseMesh {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
                 gl.UNSIGNED_BYTE, imgElement);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            // console.log("loaded")
         }
         document.body.append(imgElement);
     }
@@ -568,11 +520,10 @@ export class Hemisphere extends BaseMesh {
 
         // build indices
         for (let i = 0; i < m; i++) {
-            // let theta = i*(Math.PI)/m;
             for (let j = 0; j < n; j++) {
-                let v1 = i * (n + 1) + j;//index of vi,j
-                let v2 = v1 + n + 1; //index of vi+1,j
-                let v3 = v1 + 1; //index of vi,j+1
+                let v1 = i * (n + 1) + j;
+                let v2 = v1 + n + 1; 
+                let v3 = v1 + 1; 
                 let v4 = v2 + 1;
                 indices.push(...[v1, v2, v3, v3, v2, v4]);
 
